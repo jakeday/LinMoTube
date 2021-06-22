@@ -67,9 +67,7 @@ class MyFrame(wx.Frame):
             if poll is None:
                 self.watch.terminate()
 
-        fetcher = StreamURLFetcher()
-        video = Video.get(vidid)
-        vidurl = fetcher.get(video, 251)
+        vidurl = 'https://www.youtube.com/watch?v=' + vidid
 
         self.watch = subprocess.Popen(['mpv', '--player-operation-mode=pseudo-gui', '--ytdl-format="bestvideo[height<=480]+bestaudio/best"', '--', vidurl],
                                   shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
