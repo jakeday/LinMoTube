@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=LinMoTube
+GenericName=LinMoTube
+Terminal=false
+Type=Application
+Categories=Application
+Icon=linmotube
+Exec=linmotube
+StartupWMClass=linmotube
