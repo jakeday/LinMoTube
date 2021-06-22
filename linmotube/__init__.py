@@ -60,6 +60,10 @@ class MyFrame(wx.Frame):
     def OnVideoSelect(self, evt):
         vidid = evt.GetEventObject().vidid
 
+        poll = self.watch.poll()
+        if poll is None:
+            self.watch.terminate()
+
         fetcher = StreamURLFetcher()
         video = Video.get(vidid)
         vidurl = fetcher.get(video, 251)
