@@ -39,6 +39,11 @@ class MyFrame(wx.Frame):
 
         wx.InitAllImageHandlers()
 
+        my_path = os.path.abspath(os.path.dirname(__file__))
+        logoimg = wx.Image(os.path.join(my_path, 'assets/linmotube.png'), wx.BITMAP_TYPE_ANY)
+        logoimgBmp = wx.StaticBitmap(self.videopanel, wx.ID_ANY, wx.Bitmap(logoimg))
+        self.videos.Add(logoimgBmp, 0, wx.ALIGN_CENTER, 10)
+
         self.videopanel.SetAutoLayout(1)
         self.videopanel.SetupScrolling()
         self.videopanel.SetSizer(self.videos)
@@ -47,11 +52,6 @@ class MyFrame(wx.Frame):
 
         self.panel.SetSizerAndFit(self.sizer)
         self.panel.Layout()
-
-        self.LoadVideos()
-
-    def LoadVideos(self):
-        self.DoSearch(' ')
 
     def OnClose(self, evt):
         self.Close()
