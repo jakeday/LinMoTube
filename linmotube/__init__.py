@@ -16,6 +16,8 @@ class MyFrame(wx.Frame):
     def __init__(self, parent, title):
         wx.Frame.__init__(self, parent, -1, title, size=(300, 420))
 
+        self.watch = None
+
         self.panel = wx.Panel(self, wx.ID_ANY)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
@@ -60,9 +62,10 @@ class MyFrame(wx.Frame):
     def OnVideoSelect(self, evt):
         vidid = evt.GetEventObject().vidid
 
-        poll = self.watch.poll()
-        if poll is None:
-            self.watch.terminate()
+        if self.watch is not None:
+            poll = self.watch.poll()
+            if poll is None:
+                self.watch.terminate()
 
         fetcher = StreamURLFetcher()
         video = Video.get(vidid)
