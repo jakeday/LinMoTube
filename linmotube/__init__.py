@@ -71,7 +71,7 @@ class MyFrame(wx.Frame):
         video = Video.get(vidid)
         vidurl = fetcher.get(video, 251)
 
-        self.watch = subprocess.Popen(['mpv', '--ytdl-format="bestvideo[height<=480]+bestaudio/best"', '--', vidurl],
+        self.watch = subprocess.Popen(['mpv', '--player-operation-mode=pseudo-gui', '--ytdl-format="bestvideo[height<=480]+bestaudio/best"', '--', vidurl],
                                   shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
 
     def DoSearch(self, criteria):
