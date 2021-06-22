@@ -21,6 +21,8 @@ class MyFrame(wx.Frame):
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
+        self.sizer.AddSpacer(5)
+
         self.search = wx.BoxSizer(wx.HORIZONTAL)
 
         self.searchtext = wx.SearchCtrl(self.panel, value="")
