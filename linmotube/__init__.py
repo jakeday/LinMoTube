@@ -24,14 +24,16 @@ class MyFrame(wx.Frame):
 
         self.search = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.searchtext = wx.SearchCtrl(self.panel, size=(200,30), value="")
-        self.search.Add(self.searchtext, 1, wx.LEFT, 5)
+        self.searchtext = wx.SearchCtrl(self.panel, value="")
+        self.search.Add(self.searchtext, 1, wx.EXPAND, 5)
 
         self.searchbtn = wx.Button(self.panel, label="Search")
-        self.search.Add(self.searchbtn, 0, wx.RIGHT, 0)
+        self.search.Add(self.searchbtn, 0, wx.RIGHT, 5)
         self.Bind(wx.EVT_BUTTON, self.OnVideoSearch, self.searchbtn)
 
-        self.sizer.Add(self.search)
+        self.sizer.Add(self.search, flag=wx.EXPAND)
+
+        self.sizer.AddSpacer(5)
 
         self.videopanel = scrolled.ScrolledPanel(self.panel, -1)
 
