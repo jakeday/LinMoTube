@@ -7,7 +7,6 @@
 
 import os, requests, io, sys, subprocess, wx, json, threading
 import wx.lib.scrolledpanel as scrolled
-#from subprocess import check_call
 from urllib.parse import urlparse
 from youtubesearchpython import *
 from PIL import Image
