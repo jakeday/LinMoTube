@@ -9,7 +9,7 @@ There is currently no official GUI client for YouTube on Linux Mobile, so this i
 
 0. (Prep) Install Dependencies:
   ```
-   sudo apt install git python3 python3-pip libgtk-3-dev python3-requests python3-setuptools python3-wxgtk4.0
+   sudo apt install git python3 python3-pip libgtk-3-dev python3-requests python3-setuptools python3-wxgtk4.0 mpv
   ```
 1. Clone the LinMoTube repo:
   ```

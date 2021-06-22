@@ -11,6 +11,10 @@ setuptools.setup(
     author='Jake Day',
     url='https://github.com/jakeday/LinMoTube',
     python_requires='>=3.8',
+    install_requires=[
+        'youtube-search-python',
+        'pytube'
+    ],
     include_package_data=True,
     data_files=[
         ('/usr/share/icons/hicolor/scalable/apps', ['linmotube/assets/linmotube.png']),
