@@ -56,6 +56,8 @@ class MyFrame(wx.Frame):
         self.panel.SetSizerAndFit(self.sizer)
         self.panel.Layout()
 
+        wx.FutureCall(0, self.DoSearch, None)
+
     def OnClose(self, evt):
         self.Close()
 
