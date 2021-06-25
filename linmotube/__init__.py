@@ -16,6 +16,8 @@ class MyFrame(wx.Frame):
         wx.Frame.__init__(self, parent, -1, title, size=(300, 420))
 
         self.watch = None
+        self.mode = "V"
+        self.criteria = None
 
         self.panel = wx.Panel(self, wx.ID_ANY)
 
@@ -25,8 +27,8 @@ class MyFrame(wx.Frame):
 
         self.search = wx.BoxSizer(wx.HORIZONTAL)
 
-        my_path = os.path.abspath(os.path.dirname(__file__))
-        logoimg = wx.Image(os.path.join(my_path, 'assets/linmotube.png'), wx.BITMAP_TYPE_ANY)
+        self.my_path = os.path.abspath(os.path.dirname(__file__))
+        logoimg = wx.Image(os.path.join(self.my_path, 'assets/linmotube.png'), wx.BITMAP_TYPE_ANY)
         logoimg = logoimg.Scale(30, 30, wx.IMAGE_QUALITY_HIGH)
         logoimgBmp = wx.StaticBitmap(self.panel, wx.ID_ANY, wx.Bitmap(logoimg))
         self.search.Add(logoimgBmp, 0, wx.LEFT, 5)
@@ -39,6 +41,10 @@ class MyFrame(wx.Frame):
         self.searchbtn = wx.Button(self.panel, label="Go", size=(50, 30))
         self.search.Add(self.searchbtn, 0, wx.RIGHT, 5)
         self.Bind(wx.EVT_BUTTON, self.OnVideoSearch, self.searchbtn)
+
+        self.modebtn = wx.ToggleButton(self.panel, label="V", size=(30, 30))
+        self.search.Add(self.modebtn, 0, wx.RIGHT, 5)
+        self.Bind(wx.EVT_TOGGLEBUTTON, self.OnToggleMode, self.modebtn)
 
         self.sizer.Add(self.search, flag=wx.EXPAND)
 
@@ -56,8 +62,28 @@ class MyFrame(wx.Frame):
 
         self.sizer.Add(self.videopanel, 1, wx.EXPAND, 10)
 
+        self.controls = wx.BoxSizer(wx.VERTICAL)
+
+        self.stopimg = wx.Image(os.path.join(self.my_path, 'assets/stop.png'), wx.BITMAP_TYPE_ANY)
+        self.stopimg = self.stopimg.Scale(20, 20, wx.IMAGE_QUALITY_HIGH)
+        self.stopbtn = wx.BitmapButton(self.panel, wx.ID_ANY, wx.Bitmap(self.stopimg), size=(30, 30))
+        self.controls.Add(self.stopbtn, 1, wx.ALIGN_CENTER|wx.ALL, 5)
+        self.Bind(wx.EVT_BUTTON, self.OnStopVideo, self.stopbtn)
+
+        self.playingtitle = wx.StaticText(self.panel, label='Loading...')
+        self.playingtitle.Wrap(300)
+        self.controls.Add(self.playingtitle, 0, wx.ALIGN_CENTER|wx.ALL, 10)
+
+        self.sizer.Add(self.controls, flag=wx.EXPAND)
+
+        self.stopbtn.Hide()
+        self.playingtitle.Hide()
+
         self.panel.SetSizerAndFit(self.sizer)
         self.panel.Layout()
+
+        self.playimg = wx.Image(os.path.join(self.my_path, 'assets/play.png'), wx.BITMAP_TYPE_ANY)
+        self.playimg = self.playimg.Scale(20, 20, wx.IMAGE_QUALITY_HIGH)
 
         wx.FutureCall(0, self.DoSearch, None)
 
@@ -67,6 +93,26 @@ class MyFrame(wx.Frame):
     def OnVideoSearch(self, evt):
         self.DoSearch(self.searchtext.GetValue())
 
+    def OnToggleMode(self, evt):
+        if self.mode == "V":
+            self.mode ="M"
+        else:
+            self.mode = "V"
+
+        self.modebtn.SetLabel(self.mode)
+        self.DoSearch(self.criteria)
+
+    def OnStopVideo(self, evt):
+        if self.watch is not None:
+            poll = self.watch.poll()
+            if poll is None:
+                self.watch.terminate()
+
+        self.stopbtn.Hide()
+        self.playingtitle.Hide()
+        self.playingtitle.SetLabel("Loading...")
+        self.panel.Layout()
+
     def OnVideoSelect(self, evt):
         vidid = evt.GetEventObject().vidid
 
@@ -75,55 +121,104 @@ class MyFrame(wx.Frame):
             if poll is None:
                 self.watch.terminate()
 
+        self.playingtitle.Show()
+        self.panel.Layout()
+
         vidurl = 'https://www.youtube.com/watch?v=' + vidid
 
+        if self.mode == "V":
+            playerparams = ['mpv', '--player-operation-mode=pseudo-gui', '--', vidurl]
+        else:
+            playerparams = ['mpv', '--', vidurl]
+
         # settings from conf: --ytdl-format="bestvideo[height<=480]+bestaudio/best"
-        self.watch = subprocess.Popen(['mpv', '--player-operation-mode=pseudo-gui', '--', vidurl],
-                                  shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
+        self.watch = subprocess.Popen(playerparams, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
+
+        self.stopbtn.Show()
+        self.playingtitle.SetLabel(evt.GetEventObject().vidtitle)
+        self.panel.Layout()
 
     def DoSearch(self, criteria):
+        self.criteria = criteria
         self.videos.Clear(True)
 
         videosSearch = VideosSearch(criteria, limit=10)
         results = videosSearch.result()['result']
 
         for vid in results :
-            vidthumb = vid['thumbnails'][0]['url']
+            if self.mode == "V":
+                vidthumb = vid['thumbnails'][0]['url']
 
-            vurl = urlparse(vidthumb)
-            thumbname = os.path.basename(vurl.path)
+                print(vid)
 
-            content = requests.get(vidthumb).content
+                vurl = urlparse(vidthumb)
+                thumbname = os.path.basename(vurl.path)
 
-            file = open("/tmp/" + thumbname, "wb")
-            file.write(content)
-            file.close()
+                content = requests.get(vidthumb).content
 
-            im = Image.open("/tmp/" + thumbname).convert("RGB")
-            im.save("/tmp/" + thumbname, "jpeg")
+                file = open("/tmp/" + thumbname, "wb")
+                file.write(content)
+                file.close()
 
-            vidimg = wx.Image("/tmp/" + thumbname, wx.BITMAP_TYPE_ANY)
-            W = vidimg.GetWidth()
-            H = vidimg.GetHeight()
-            thumbsize = 280
-            if W > H:
-                thmw = thumbsize
-                thmh = thumbsize * H / W
-            else:
-                thmh = thumbsize
-                thmw = thumbsize * W / H
-            vidimg = vidimg.Scale(thmw, thmh)
+                im = Image.open("/tmp/" + thumbname).convert("RGB")
+                im.save("/tmp/" + thumbname, "jpeg")
 
-            self.vidimgbtn = wx.BitmapButton(self.videopanel, wx.ID_ANY, wx.Bitmap(vidimg))
-            self.vidimgbtn.vidid = vid['id']
-            self.Bind(wx.EVT_BUTTON, self.OnVideoSelect, self.vidimgbtn)
+                vidimg = wx.Image("/tmp/" + thumbname, wx.BITMAP_TYPE_ANY)
+                W = vidimg.GetWidth()
+                H = vidimg.GetHeight()
+                thumbsize = 280
+                if W > H:
+                    thmw = thumbsize
+                    thmh = thumbsize * H / W
+                else:
+                    thmh = thumbsize
+                    thmw = thumbsize * W / H
+                vidimg = vidimg.Scale(thmw, thmh)
 
-            self.videos.Add(self.vidimgbtn, 0, wx.ALIGN_CENTER, 10)
+                self.vidimgbtn = wx.BitmapButton(self.videopanel, wx.ID_ANY, wx.Bitmap(vidimg))
+                self.vidimgbtn.vidid = vid['id']
+                self.vidimgbtn.vidtitle = vid['title']
+                self.Bind(wx.EVT_BUTTON, self.OnVideoSelect, self.vidimgbtn)
+
+                self.videos.Add(self.vidimgbtn, 0, wx.ALIGN_CENTER, 10)
             
+            self.details = wx.BoxSizer(wx.HORIZONTAL)
+
+            font = wx.Font(9, wx.NORMAL, wx.ITALIC, wx.NORMAL)
+            if vid['channel']['name'] is not None:
+                self.channel = wx.StaticText(self.videopanel, label=vid['channel']['name'])
+                self.channel.SetFont(font)
+                self.channel.Wrap(250)
+                self.details.Add(self.channel, 1, wx.LEFT|wx.EXPAND, 10)
+
+            if vid['viewCount']['short'] is not None:
+                self.views = wx.StaticText(self.videopanel, label=vid['viewCount']['short'])
+                self.views.SetFont(font)
+                self.details.Add(self.views, 0, wx.RIGHT, 10)
+            
+            self.videos.Add(self.details, flag=wx.EXPAND)
+
             self.vidtitle = wx.StaticText(self.videopanel, label=vid['title'])
+            font = wx.Font(12, wx.NORMAL, wx.NORMAL, wx.NORMAL)
+            self.vidtitle.SetFont(font)
             self.vidtitle.Wrap(300)
-            self.videos.Add(self.vidtitle, 0, wx.ALIGN_CENTER, 10)
-            
+            self.vidtitle.vidid = vid['id']
+            self.vidtitle.vidtitle = vid['title']
+            self.videos.Add(self.vidtitle, 1, wx.ALIGN_CENTER|wx.EXPAND, 10)
+
+            if self.mode == "M":
+                self.playbtn = wx.BitmapButton(self.videopanel, wx.ID_ANY, wx.Bitmap(self.playimg), size=(30, 30))
+                self.playbtn.vidid = vid['id']
+                self.playbtn.vidtitle = vid['title']
+                self.videos.Add(self.playbtn, 0, wx.ALIGN_CENTER|wx.EXPAND)
+                self.Bind(wx.EVT_BUTTON, self.OnVideoSelect, self.playbtn)
+                self.channel.SetForegroundColour('red')
+                self.channel.SetBackgroundColour('white')
+                self.views.SetForegroundColour('red')
+                self.views.SetBackgroundColour('white')
+                self.vidtitle.SetForegroundColour('white')
+                self.vidtitle.SetBackgroundColour('red')
+
             self.videos.AddSpacer(10)
 
             self.panel.Layout()
