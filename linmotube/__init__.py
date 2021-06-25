@@ -25,10 +25,18 @@ class MyFrame(wx.Frame):
 
         self.search = wx.BoxSizer(wx.HORIZONTAL)
 
+        my_path = os.path.abspath(os.path.dirname(__file__))
+        logoimg = wx.Image(os.path.join(my_path, 'assets/linmotube.png'), wx.BITMAP_TYPE_ANY)
+        logoimg = logoimg.Scale(30, 30, wx.IMAGE_QUALITY_HIGH)
+        logoimgBmp = wx.StaticBitmap(self.panel, wx.ID_ANY, wx.Bitmap(logoimg))
+        self.search.Add(logoimgBmp, 0, wx.LEFT, 5)
+
+        self.search.AddSpacer(5)
+
         self.searchtext = wx.SearchCtrl(self.panel, value="")
         self.search.Add(self.searchtext, 1, wx.EXPAND, 5)
 
-        self.searchbtn = wx.Button(self.panel, label="Search")
+        self.searchbtn = wx.Button(self.panel, label="Go", size=(50, 30))
         self.search.Add(self.searchbtn, 0, wx.RIGHT, 5)
         self.Bind(wx.EVT_BUTTON, self.OnVideoSearch, self.searchbtn)
 
@@ -41,11 +49,6 @@ class MyFrame(wx.Frame):
         self.videos = wx.BoxSizer(wx.VERTICAL)
 
         wx.InitAllImageHandlers()
-
-        my_path = os.path.abspath(os.path.dirname(__file__))
-        logoimg = wx.Image(os.path.join(my_path, 'assets/linmotube.png'), wx.BITMAP_TYPE_ANY)
-        logoimgBmp = wx.StaticBitmap(self.videopanel, wx.ID_ANY, wx.Bitmap(logoimg))
-        self.videos.Add(logoimgBmp, 0, wx.ALIGN_CENTER, 10)
 
         self.videopanel.SetAutoLayout(1)
         self.videopanel.SetupScrolling()
