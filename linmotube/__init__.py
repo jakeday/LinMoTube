@@ -135,7 +135,7 @@ class MyFrame(wx.Frame):
         if self.mode == "V":
             playerparams = ['mpv', '--player-operation-mode=pseudo-gui', '--', vidurl]
         else:
-            playerparams = ['mpv', '--', vidurl]
+            playerparams = ['mpv', '--no-video', '--', vidurl]
 
         # settings from conf: --ytdl-format="bestvideo[height<=480]+bestaudio/best"
         self.watch = subprocess.Popen(playerparams, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
