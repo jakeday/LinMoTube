@@ -42,9 +42,11 @@ class MyFrame(wx.Frame):
         self.search.Add(self.searchbtn, 0, wx.RIGHT, 5)
         self.Bind(wx.EVT_BUTTON, self.OnVideoSearch, self.searchbtn)
 
-        self.modebtn = wx.ToggleButton(self.panel, label="V", size=(30, 30))
+        self.videoimg = wx.Image(os.path.join(self.my_path, 'assets/video.png'), wx.BITMAP_TYPE_ANY)
+        self.videoimg = self.videoimg.Scale(20, 20, wx.IMAGE_QUALITY_HIGH)
+        self.modebtn = wx.BitmapButton(self.panel, wx.ID_ANY, wx.Bitmap(self.videoimg), size=(30, 30))
         self.search.Add(self.modebtn, 0, wx.RIGHT, 5)
-        self.Bind(wx.EVT_TOGGLEBUTTON, self.OnToggleMode, self.modebtn)
+        self.Bind(wx.EVT_BUTTON, self.OnToggleMode, self.modebtn)
 
         self.sizer.Add(self.search, flag=wx.EXPAND)
 
@@ -82,6 +84,9 @@ class MyFrame(wx.Frame):
         self.panel.SetSizerAndFit(self.sizer)
         self.panel.Layout()
 
+        self.musicimg = wx.Image(os.path.join(self.my_path, 'assets/music.png'), wx.BITMAP_TYPE_ANY)
+        self.musicimg = self.musicimg.Scale(20, 20, wx.IMAGE_QUALITY_HIGH)
+
         self.playimg = wx.Image(os.path.join(self.my_path, 'assets/play.png'), wx.BITMAP_TYPE_ANY)
         self.playimg = self.playimg.Scale(20, 20, wx.IMAGE_QUALITY_HIGH)
 
@@ -96,10 +101,11 @@ class MyFrame(wx.Frame):
     def OnToggleMode(self, evt):
         if self.mode == "V":
             self.mode ="M"
+            self.modebtn.SetBitmap(wx.Bitmap(self.musicimg))
         else:
             self.mode = "V"
+            self.modebtn.SetBitmap(wx.Bitmap(self.videoimg))
 
-        self.modebtn.SetLabel(self.mode)
         self.DoSearch(self.criteria)
 
     def OnStopVideo(self, evt):
