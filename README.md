@@ -5,6 +5,8 @@ A GUI client for YouTube on Linux Mobile.
 ### About
 There is currently no official GUI client for YouTube on Linux Mobile, so this is to fill the need!
 
+Supports both YouTube Video mode and YouTube Music mode with a convenient toggle switch!
+
 ### Instructions
 
 0. (Prep) Install Dependencies:
@@ -23,6 +25,13 @@ There is currently no official GUI client for YouTube on Linux Mobile, so this i
   ```
    sudo python3 setup.py install
   ```
+
+### TODO
+
+Clean up the UI to give a proper theme
+Implement pagination
+Add support for filters
+Additional controls for playback
 
 ### Donations Appreciated!
 
