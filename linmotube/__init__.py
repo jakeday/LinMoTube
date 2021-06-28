@@ -37,9 +37,9 @@ class MyFrame(wx.Frame):
 
         self.search.AddSpacer(5)
 
-        self.searchtext = wx.SearchCtrl(self.panel, value="")
-        self.searchtext.SetForegroundColour(wx.Colour(0, 0, 0))
-        self.searchtext.SetBackgroundColour(wx.Colour(255, 255, 255))
+        self.searchtext = wx.SearchCtrl(self.panel, value="", style=wx.TE_RICH)
+        #self.searchtext.SetForegroundColour(wx.Colour(0, 0, 0))
+        #self.searchtext.SetBackgroundColour(wx.Colour(255, 255, 255))
         self.search.Add(self.searchtext, 1, wx.EXPAND, 5)
 
         self.searchbtn = wx.Button(self.panel, label="Go", size=(50, 30))
@@ -76,7 +76,7 @@ class MyFrame(wx.Frame):
 
         self.stopimg = wx.Image(os.path.join(self.my_path, 'assets/stop.png'), wx.BITMAP_TYPE_ANY)
         self.stopimg = self.stopimg.Scale(20, 20, wx.IMAGE_QUALITY_HIGH)
-        self.stopbtn = wx.BitmapButton(self.panel, wx.ID_ANY, wx.Bitmap(self.stopimg), size=(30, 30))
+        self.stopbtn = wx.BitmapButton(self.panel, wx.ID_ANY, wx.Bitmap(self.stopimg), size=(30, 30), style=wx.NO_BORDER|wx.BU_EXACTFIT)
         self.controls.Add(self.stopbtn, 1, wx.ALIGN_CENTER|wx.ALL, 5)
         self.Bind(wx.EVT_BUTTON, self.OnStopVideo, self.stopbtn)
 
