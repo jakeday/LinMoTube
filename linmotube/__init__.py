@@ -149,8 +149,6 @@ class MyFrame(wx.Frame):
             if self.mode == "V":
                 vidthumb = vid['thumbnails'][0]['url']
 
-                print(vid)
-
                 vurl = urlparse(vidthumb)
                 thumbname = os.path.basename(vurl.path)
 
