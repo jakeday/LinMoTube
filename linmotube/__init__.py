@@ -20,6 +20,8 @@ class MyFrame(wx.Frame):
         self.criteria = None
 
         self.panel = wx.Panel(self, wx.ID_ANY)
+        self.panel.SetForegroundColour(wx.Colour(0, 0, 0))
+        self.panel.SetBackgroundColour(wx.Colour(255, 255, 255))
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -36,15 +38,19 @@ class MyFrame(wx.Frame):
         self.search.AddSpacer(5)
 
         self.searchtext = wx.SearchCtrl(self.panel, value="")
+        self.searchtext.SetForegroundColour(wx.Colour(0, 0, 0))
+        self.searchtext.SetBackgroundColour(wx.Colour(255, 255, 255))
         self.search.Add(self.searchtext, 1, wx.EXPAND, 5)
 
         self.searchbtn = wx.Button(self.panel, label="Go", size=(50, 30))
+        self.searchbtn.SetForegroundColour(wx.Colour(0, 0, 0))
+        self.searchbtn.SetBackgroundColour(wx.Colour(255, 255, 255))
         self.search.Add(self.searchbtn, 0, wx.RIGHT, 5)
         self.Bind(wx.EVT_BUTTON, self.OnVideoSearch, self.searchbtn)
 
         self.videoimg = wx.Image(os.path.join(self.my_path, 'assets/video.png'), wx.BITMAP_TYPE_ANY)
         self.videoimg = self.videoimg.Scale(20, 20, wx.IMAGE_QUALITY_HIGH)
-        self.modebtn = wx.BitmapButton(self.panel, wx.ID_ANY, wx.Bitmap(self.videoimg), size=(30, 30))
+        self.modebtn = wx.BitmapButton(self.panel, wx.ID_ANY, wx.Bitmap(self.videoimg), size=(30, 30), style=wx.NO_BORDER|wx.BU_EXACTFIT)
         self.search.Add(self.modebtn, 0, wx.RIGHT, 5)
         self.Bind(wx.EVT_BUTTON, self.OnToggleMode, self.modebtn)
 
@@ -53,13 +59,15 @@ class MyFrame(wx.Frame):
         self.sizer.AddSpacer(5)
 
         self.videopanel = scrolled.ScrolledPanel(self.panel, -1)
+        self.videopanel.SetForegroundColour(wx.Colour(0, 0, 0))
+        self.videopanel.SetBackgroundColour(wx.Colour(255, 255, 255))
 
         self.videos = wx.BoxSizer(wx.VERTICAL)
 
         wx.InitAllImageHandlers()
 
         self.videopanel.SetAutoLayout(1)
-        self.videopanel.SetupScrolling()
+        self.videopanel.SetupScrolling(False, True)
         self.videopanel.SetSizer(self.videos)
 
         self.sizer.Add(self.videopanel, 1, wx.EXPAND, 10)
@@ -170,7 +178,7 @@ class MyFrame(wx.Frame):
                 vidimg = wx.Image("/tmp/" + thumbname, wx.BITMAP_TYPE_ANY)
                 W = vidimg.GetWidth()
                 H = vidimg.GetHeight()
-                thumbsize = 280
+                thumbsize = 300
                 if W > H:
                     thmw = thumbsize
                     thmh = thumbsize * H / W
@@ -179,12 +187,14 @@ class MyFrame(wx.Frame):
                     thmw = thumbsize * W / H
                 vidimg = vidimg.Scale(int(thmw), int(thmh))
 
-                self.vidimgbtn = wx.BitmapButton(self.videopanel, wx.ID_ANY, wx.Bitmap(vidimg))
+                self.vidimgbtn = wx.BitmapButton(self.videopanel, wx.ID_ANY, wx.Bitmap(vidimg), pos=(0, 0), size=(vidimg.GetWidth(), vidimg.GetHeight()),
+                                                 style=wx.NO_BORDER|wx.BU_EXACTFIT)
+                self.vidimgbtn.SetBackgroundColour(wx.Colour(255, 255, 255))
                 self.vidimgbtn.vidid = vid['id']
                 self.vidimgbtn.vidtitle = vid['title']
                 self.Bind(wx.EVT_BUTTON, self.OnVideoSelect, self.vidimgbtn)
 
-                self.videos.Add(self.vidimgbtn, 0, wx.ALIGN_CENTER, 10)
+                self.videos.Add(self.vidimgbtn, 0, wx.ALIGN_CENTER|wx.SHAPED, 0)
             
             self.details = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -194,34 +204,40 @@ class MyFrame(wx.Frame):
                 self.channel.SetFont(font)
                 self.channel.Wrap(250)
                 self.details.Add(self.channel, 1, wx.LEFT|wx.EXPAND, 10)
+                self.channel.SetForegroundColour(wx.Colour(0, 0, 0))
+                self.channel.SetBackgroundColour(wx.Colour(220, 220, 220))
 
             if vid['viewCount']['short'] is not None:
                 self.views = wx.StaticText(self.videopanel, label=vid['viewCount']['short'])
                 self.views.SetFont(font)
                 self.details.Add(self.views, 0, wx.RIGHT, 10)
+                self.views.SetForegroundColour(wx.Colour(0, 0, 0))
+                self.views.SetBackgroundColour(wx.Colour(220, 220, 220))
             
             self.videos.Add(self.details, flag=wx.EXPAND)
 
+            self.vidcard = wx.BoxSizer(wx.HORIZONTAL)
+
             self.vidtitle = wx.StaticText(self.videopanel, label=vid['title'])
-            font = wx.Font(12, wx.NORMAL, wx.NORMAL, wx.NORMAL)
+            font = wx.Font(11, wx.NORMAL, wx.NORMAL, wx.NORMAL)
             self.vidtitle.SetFont(font)
             self.vidtitle.Wrap(300)
             self.vidtitle.vidid = vid['id']
             self.vidtitle.vidtitle = vid['title']
-            self.videos.Add(self.vidtitle, 1, wx.ALIGN_CENTER|wx.EXPAND, 10)
+
+            self.vidcard.Add(self.vidtitle, 1, wx.ALIGN_CENTER|wx.EXPAND, 10)
+
+            self.videos.Add(self.vidcard, 1, wx.ALIGN_CENTER|wx.EXPAND, 10)
 
             if self.mode == "M":
-                self.playbtn = wx.BitmapButton(self.videopanel, wx.ID_ANY, wx.Bitmap(self.playimg), size=(30, 30))
+                self.playbtn = wx.BitmapButton(self.videopanel, wx.ID_ANY, wx.Bitmap(self.playimg), size=(30, 30), style=wx.NO_BORDER|wx.BU_EXACTFIT)
                 self.playbtn.vidid = vid['id']
                 self.playbtn.vidtitle = vid['title']
-                self.videos.Add(self.playbtn, 0, wx.ALIGN_CENTER|wx.EXPAND)
+                self.vidcard.Add(self.playbtn, 0, wx.RIGHT)
                 self.Bind(wx.EVT_BUTTON, self.OnVideoSelect, self.playbtn)
-                self.channel.SetForegroundColour('red')
-                self.channel.SetBackgroundColour('white')
-                self.views.SetForegroundColour('red')
-                self.views.SetBackgroundColour('white')
-                self.vidtitle.SetForegroundColour('white')
-                self.vidtitle.SetBackgroundColour('red')
+                self.vidtitle.Wrap(250)
+                self.vidtitle.SetForegroundColour('black')
+                self.vidtitle.SetBackgroundColour('white')
 
             self.videos.AddSpacer(10)
 
