@@ -85,7 +85,7 @@ class MyFrame(wx.Frame):
         self.playimg = wx.Image(os.path.join(self.my_path, 'assets/play.png'), wx.BITMAP_TYPE_ANY)
         self.playimg = self.playimg.Scale(20, 20, wx.IMAGE_QUALITY_HIGH)
 
-        wx.FutureCall(0, self.DoSearch, None)
+        wx.CallLater(0, self.DoSearch, None)
 
     def OnClose(self, evt):
         self.Close()
@@ -171,7 +171,7 @@ class MyFrame(wx.Frame):
                 else:
                     thmh = thumbsize
                     thmw = thumbsize * W / H
-                vidimg = vidimg.Scale(thmw, thmh)
+                vidimg = vidimg.Scale(int(thmw), int(thmh))
 
                 self.vidimgbtn = wx.BitmapButton(self.videopanel, wx.ID_ANY, wx.Bitmap(vidimg))
                 self.vidimgbtn.vidid = vid['id']
