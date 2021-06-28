@@ -29,8 +29,11 @@ Supports both YouTube Video mode and YouTube Music mode with a convenient toggle
 ### TODO
 
 Clean up the UI to give a proper theme
+
 Implement pagination
+
 Add support for filters
+
 Additional controls for playback
 
 ### Donations Appreciated!
