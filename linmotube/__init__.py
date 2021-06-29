@@ -72,11 +72,11 @@ class MyFrame(wx.Frame):
 
         self.sizer.Add(self.videopanel, 1, wx.EXPAND, 10)
 
-        self.controls = wx.BoxSizer(wx.VERTICAL)
+        self.controls = wx.StaticBoxSizer(wx.VERTICAL, self.panel, label='Now Playing')
 
         self.stopimg = wx.Image(os.path.join(self.my_path, 'assets/stop.png'), wx.BITMAP_TYPE_ANY)
-        self.stopimg = self.stopimg.Scale(20, 20, wx.IMAGE_QUALITY_HIGH)
-        self.stopbtn = wx.BitmapButton(self.panel, wx.ID_ANY, wx.Bitmap(self.stopimg), size=(30, 30), style=wx.NO_BORDER|wx.BU_EXACTFIT)
+        self.stopimg = self.stopimg.Scale(30, 30, wx.IMAGE_QUALITY_HIGH)
+        self.stopbtn = wx.BitmapButton(self.panel, wx.ID_ANY, wx.Bitmap(self.stopimg), size=(50, 50), style=wx.NO_BORDER|wx.BU_EXACTFIT)
         self.controls.Add(self.stopbtn, 1, wx.ALIGN_CENTER|wx.ALL, 5)
         self.Bind(wx.EVT_BUTTON, self.OnStopVideo, self.stopbtn)
 
@@ -96,7 +96,7 @@ class MyFrame(wx.Frame):
         self.musicimg = self.musicimg.Scale(20, 20, wx.IMAGE_QUALITY_HIGH)
 
         self.playimg = wx.Image(os.path.join(self.my_path, 'assets/play.png'), wx.BITMAP_TYPE_ANY)
-        self.playimg = self.playimg.Scale(20, 20, wx.IMAGE_QUALITY_HIGH)
+        self.playimg = self.playimg.Scale(30, 30, wx.IMAGE_QUALITY_HIGH)
 
         wx.CallLater(0, self.DoSearch, None)
 
@@ -230,7 +230,7 @@ class MyFrame(wx.Frame):
             self.videos.Add(self.vidcard, 1, wx.ALIGN_CENTER|wx.EXPAND, 10)
 
             if self.mode == "M":
-                self.playbtn = wx.BitmapButton(self.videopanel, wx.ID_ANY, wx.Bitmap(self.playimg), size=(30, 30), style=wx.NO_BORDER|wx.BU_EXACTFIT)
+                self.playbtn = wx.BitmapButton(self.videopanel, wx.ID_ANY, wx.Bitmap(self.playimg), size=(50, 50), style=wx.NO_BORDER|wx.BU_EXACTFIT)
                 self.playbtn.vidid = vid['id']
                 self.playbtn.vidtitle = vid['title']
                 self.vidcard.Add(self.playbtn, 0, wx.RIGHT)
