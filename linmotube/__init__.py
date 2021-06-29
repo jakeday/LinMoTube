@@ -87,7 +87,7 @@ class MyFrame(wx.Frame):
         self.sizer.Add(self.controls, flag=wx.EXPAND)
 
         self.stopbtn.Hide()
-        self.playingtitle.Hide()
+        self.playingtitle.SetLabel('no media selected')
 
         self.panel.SetSizerAndFit(self.sizer)
         self.panel.Layout()
@@ -123,8 +123,7 @@ class MyFrame(wx.Frame):
                 self.watch.terminate()
 
         self.stopbtn.Hide()
-        self.playingtitle.Hide()
-        self.playingtitle.SetLabel("Loading...")
+        self.playingtitle.SetLabel('no media selected')
         self.panel.Layout()
 
     def OnVideoSelect(self, evt):
@@ -135,7 +134,7 @@ class MyFrame(wx.Frame):
             if poll is None:
                 self.watch.terminate()
 
-        self.playingtitle.Show()
+        self.playingtitle.SetLabel('loading...')
         self.panel.Layout()
 
         vidurl = 'https://www.youtube.com/watch?v=' + vidid
