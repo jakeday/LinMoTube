@@ -3,9 +3,13 @@
 A GUI client for YouTube on Linux Mobile.
 
 ### About
-There is currently no official GUI client for YouTube on Linux Mobile, so this is to fill the need!
+Browse and play media from YouTube without the need to sign-in. With the recent popularity of Linux Phones and the desire to stream media from YouTube, LinMoTube was born!
 
 Supports both YouTube Video mode and YouTube Music mode with a convenient toggle switch!
+
+LinMoTube Video | LinMoTube Music
+:-------------------------:|:-------------------------:
+![linmotube-video](https://user-images.githubusercontent.com/554899/123823557-515de200-d8cb-11eb-8709-d9978c37b589.png) | ![linmotube-music](https://user-images.githubusercontent.com/554899/123823582-56bb2c80-d8cb-11eb-83af-e0825ea77333.png)
 
 ### Instructions
 
@@ -27,8 +31,6 @@ Supports both YouTube Video mode and YouTube Music mode with a convenient toggle
   ```
 
 ### TODO
-
-Clean up the UI to give a proper theme
 
 Implement pagination
 
