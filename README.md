@@ -9,7 +9,7 @@ Supports both YouTube Video mode and YouTube Music mode with a convenient toggle
 
 LinMoTube Video | LinMoTube Music
 :-------------------------:|:-------------------------:
-![linmotube-video](https://user-images.githubusercontent.com/554899/123823557-515de200-d8cb-11eb-8709-d9978c37b589.png) | ![linmotube-music](https://user-images.githubusercontent.com/554899/123823582-56bb2c80-d8cb-11eb-83af-e0825ea77333.png)
+![linmotube-video](![alt text](https://github.com/gurudvlp/LinMoTube/blob/master/LinMoTube-SearchPage.png?raw=true)) | ![linmotube-videoplayback](![alt text](https://github.com/gurudvlp/LinMoTube/blob/master/LinMoTube-VideoPlayback.png?raw=true)) | ![linmotube-music](https://user-images.githubusercontent.com/554899/123823582-56bb2c80-d8cb-11eb-83af-e0825ea77333.png)
 
 ### Instructions
 
