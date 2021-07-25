@@ -4,6 +4,9 @@
 # v1.0
 # Basic GUI for YouTube on Linux Mobile
 #----------------------------------------------------------------------
+#
+# 2021-07-24 Updated to clean up interface a bit github.com/gurudvlp
+#
 
 import os, requests, io, sys, subprocess, wx, json, threading
 import wx.lib.scrolledpanel as scrolled
@@ -14,7 +17,7 @@ from PIL import Image
 class MyFrame(wx.Frame):
     def __init__(self, parent, title):
         wx.Frame.__init__(self, parent, -1, title, size=(300, 420))
-
+		
         self.watch = None
         self.mode = "V"
         self.criteria = None
@@ -98,7 +101,16 @@ class MyFrame(wx.Frame):
         self.playimg = wx.Image(os.path.join(self.my_path, 'assets/play.png'), wx.BITMAP_TYPE_ANY)
         self.playimg = self.playimg.Scale(30, 30, wx.IMAGE_QUALITY_HIGH)
 
+        self.GetOriginalIdleTime()
+        
         wx.CallLater(0, self.DoSearch, None)
+
+    def GetOriginalIdleTime(self):
+        
+        sbprocess = subprocess.Popen(['gsettings', 'get', 'org.gnome.desktop.session', 'idle-delay'], stdout=subprocess.PIPE)
+        out, err = sbprocess.communicate()
+        
+        self.idleTime = out.decode('UTF-8').replace("uint32", "").strip()
 
     def OnClose(self, evt):
         self.Close()
@@ -125,6 +137,10 @@ class MyFrame(wx.Frame):
         self.stopbtn.Hide()
         self.playingtitle.SetLabel('no media selected')
         self.panel.Layout()
+        
+        # Set screen blanking back to original value
+        sbparams = ['gsettings', 'set', 'org.gnome.desktop.session', 'idle-delay', self.idleTime]
+        sbproc = subprocess.Popen(sbparams, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
 
     def OnVideoSelect(self, evt):
         vidid = evt.GetEventObject().vidid
@@ -140,16 +156,23 @@ class MyFrame(wx.Frame):
         vidurl = 'https://www.youtube.com/watch?v=' + vidid
 
         if self.mode == "V":
-            playerparams = ['mpv', '--player-operation-mode=pseudo-gui', '--', vidurl]
+            playerparams = ['mpv', '--geometry=720x360', '--player-operation-mode=pseudo-gui', '--', vidurl]
         else:
             playerparams = ['mpv', '--no-video', '--', vidurl]
 
         # settings from conf: --ytdl-format="bestvideo[height<=480]+bestaudio/best"
         self.watch = subprocess.Popen(playerparams, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
 
+        # Disable screen blanking for the duration of the video
+        sbparams = ['gsettings', 'set', 'org.gnome.desktop.session', 'idle-delay', '0']
+        sbproc = subprocess.Popen(sbparams, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
+        
         self.stopbtn.Show()
         self.playingtitle.SetLabel(evt.GetEventObject().vidtitle)
         self.panel.Layout()
+        
+        
+        
 
     def DoSearch(self, criteria):
         self.criteria = criteria
@@ -157,6 +180,7 @@ class MyFrame(wx.Frame):
 
         videosSearch = VideosSearch(criteria, limit=10)
         results = videosSearch.result()['result']
+        
 
         for vid in results :
             if self.mode == "V":
@@ -177,7 +201,8 @@ class MyFrame(wx.Frame):
                 vidimg = wx.Image("/tmp/" + thumbname, wx.BITMAP_TYPE_ANY)
                 W = vidimg.GetWidth()
                 H = vidimg.GetHeight()
-                thumbsize = 300
+                #thumbsize = 300
+                thumbsize = 360
                 if W > H:
                     thmw = thumbsize
                     thmh = thumbsize * H / W
@@ -195,38 +220,67 @@ class MyFrame(wx.Frame):
 
                 self.videos.Add(self.vidimgbtn, 0, wx.ALIGN_CENTER|wx.SHAPED, 0)
             
-            self.details = wx.BoxSizer(wx.HORIZONTAL)
-
-            font = wx.Font(9, wx.NORMAL, wx.ITALIC, wx.NORMAL)
-            if vid['channel']['name'] is not None:
-                self.channel = wx.StaticText(self.videopanel, label=vid['channel']['name'])
-                self.channel.SetFont(font)
-                self.channel.Wrap(250)
-                self.details.Add(self.channel, 1, wx.LEFT|wx.EXPAND, 10)
-                self.channel.SetForegroundColour(wx.Colour(0, 0, 0))
-                self.channel.SetBackgroundColour(wx.Colour(220, 220, 220))
-
-            if vid['viewCount']['short'] is not None:
-                self.views = wx.StaticText(self.videopanel, label=vid['viewCount']['short'])
-                self.views.SetFont(font)
-                self.details.Add(self.views, 0, wx.RIGHT, 10)
-                self.views.SetForegroundColour(wx.Colour(0, 0, 0))
-                self.views.SetBackgroundColour(wx.Colour(220, 220, 220))
+            # Create a Box to put the video meta data inside of
+            self.videometa = wx.BoxSizer(wx.HORIZONTAL)
             
-            self.videos.Add(self.details, flag=wx.EXPAND)
+            # This will be split into two columns.
+            # The left column will have the channel avatar, the right
+            # column is going to be the title, channel name and views
+            channelthumb = vid['channel']['thumbnails'][0]['url']
 
-            self.vidcard = wx.BoxSizer(wx.HORIZONTAL)
+            vurl = urlparse(channelthumb)
+            thumbname = os.path.basename(vurl.path)
 
+            content = requests.get(channelthumb).content
+
+            file = open("/tmp/" + thumbname, "wb")
+            file.write(content)
+            file.close()
+
+            im = Image.open("/tmp/" + thumbname).convert("RGB")
+            im.save("/tmp/" + thumbname, "jpeg")
+
+            channelimg = wx.Image("/tmp/" + thumbname, wx.BITMAP_TYPE_ANY)
+            channelimg = channelimg.Scale(68, 68)
+
+            channelimgBmp = wx.StaticBitmap(self.videopanel, wx.ID_ANY, wx.Bitmap(channelimg))
+            self.videometa.Add(channelimgBmp, 0, wx.EXPAND, 0)
+            
+            # Now, the right column will have two rows.  The title, then the
+            # other data.
+            self.videoTitleBox = wx.BoxSizer(wx.VERTICAL)
+            
+            # Create the title, then add it to the title box
             self.vidtitle = wx.StaticText(self.videopanel, label=vid['title'])
             font = wx.Font(11, wx.NORMAL, wx.NORMAL, wx.NORMAL)
             self.vidtitle.SetFont(font)
-            self.vidtitle.Wrap(300)
+            self.vidtitle.Wrap(290)
             self.vidtitle.vidid = vid['id']
             self.vidtitle.vidtitle = vid['title']
+            
+            self.videoTitleBox.Add(self.vidtitle, 0, wx.ALIGN_LEFT | wx.ALIGN_TOP, 0)
+            
+            # Now assemble the channel name, views, and age
+            nameViewsAgeBox = wx.BoxSizer(wx.HORIZONTAL)
+            font = wx.Font(9, wx.NORMAL, wx.NORMAL, wx.NORMAL)
+            self.channel = wx.StaticText(self.videopanel, label=vid['channel']['name'])
+            self.channel.SetFont(font)
+            
+            self.views = wx.StaticText(self.videopanel, label=vid['viewCount']['short'])
+            self.views.SetFont(font);
+            
+            
+            # Add the name, views, age box to the videoTitleBox
+            nameViewsAgeBox.Add(self.channel, 1, wx.LEFT|wx.EXPAND, 10)
+            nameViewsAgeBox.Add(self.views, 1, wx.LEFT|wx.EXPAND, 10)
+            
+            # Add the avatar and text info to videometa container
+            self.videoTitleBox.Add(nameViewsAgeBox, 0, wx.LEFT, 0)
+            self.videometa.Add(self.videoTitleBox, 0, wx.LEFT, 0)
+            
+            # Add everything to the full card
+            self.videos.Add(self.videometa, 1, wx.EXPAND, 0)
 
-            self.vidcard.Add(self.vidtitle, 1, wx.ALIGN_CENTER|wx.EXPAND, 10)
-
-            self.videos.Add(self.vidcard, 1, wx.ALIGN_CENTER|wx.EXPAND, 10)
 
             if self.mode == "M":
                 self.playbtn = wx.BitmapButton(self.videopanel, wx.ID_ANY, wx.Bitmap(self.playimg), size=(50, 50), style=wx.NO_BORDER|wx.BU_EXACTFIT)
@@ -248,6 +302,7 @@ class MyApp(wx.App):
         self.SetTopWindow(frame)
 
         frame.Show(True)
+        frame.Maximize(True)
 
         return True
 
