@@ -7,9 +7,9 @@ Browse and play media from YouTube without the need to sign-in. With the recent 
 
 Supports both YouTube Video mode and YouTube Music mode with a convenient toggle switch!
 
-LinMoTube Video | LinMoTube Music
+LinMoTube Search | LinMoTube Playback | LinMoTube Music
 :-------------------------:|:-------------------------:
-![linmotube-video](![alt text](https://github.com/gurudvlp/LinMoTube/blob/master/LinMoTube-SearchPage.png?raw=true)) | ![linmotube-videoplayback](![alt text](https://github.com/gurudvlp/LinMoTube/blob/master/LinMoTube-VideoPlayback.png?raw=true)) | ![linmotube-music](https://user-images.githubusercontent.com/554899/123823582-56bb2c80-d8cb-11eb-83af-e0825ea77333.png)
+![linmotube-video](![alt text](https://github.com/gurudvlp/LinMoTube/blob/master/docs/LinMoTube-SearchPage.png?raw=true)) | ![linmotube-videoplayback](![alt text](https://github.com/gurudvlp/LinMoTube/blob/master/docs/LinMoTube-VideoPlayback.png?raw=true)) | ![linmotube-music](https://user-images.githubusercontent.com/554899/123823582-56bb2c80-d8cb-11eb-83af-e0825ea77333.png)
 
 ### Instructions
 
