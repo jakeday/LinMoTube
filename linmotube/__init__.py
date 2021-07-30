@@ -17,6 +17,7 @@ from PIL import Image
 class MyFrame(wx.Frame):
     def __init__(self, parent, title):
         wx.Frame.__init__(self, parent, -1, title, size=(300, 420))
+        #wx.Frame.__init__(self, parent, -1, title)
 		
         self.watch = None
         self.mode = "V"
@@ -101,16 +102,25 @@ class MyFrame(wx.Frame):
         self.playimg = wx.Image(os.path.join(self.my_path, 'assets/play.png'), wx.BITMAP_TYPE_ANY)
         self.playimg = self.playimg.Scale(30, 30, wx.IMAGE_QUALITY_HIGH)
 
-        self.GetOriginalIdleTime()
+        self.getOriginalIdleTime()
+            
+        self.scaleFactor = wx.GetApp().GetTopWindow().GetContentScaleFactor()
+        
+        dsSize = wx.GetDisplaySize()
+        
+        print("Display Size W: " + str(wx.GetDisplaySize().width))
+        print("Display Size H: " + str(wx.GetDisplaySize().height))
+        print("Scaling Factor: " + str(self.scaleFactor))
         
         wx.CallLater(0, self.DoSearch, None)
 
-    def GetOriginalIdleTime(self):
+    def getOriginalIdleTime(self):
         
         sbprocess = subprocess.Popen(['gsettings', 'get', 'org.gnome.desktop.session', 'idle-delay'], stdout=subprocess.PIPE)
         out, err = sbprocess.communicate()
         
         self.idleTime = out.decode('UTF-8').replace("uint32", "").strip()
+
 
     def OnClose(self, evt):
         self.Close()
@@ -152,11 +162,36 @@ class MyFrame(wx.Frame):
 
         self.playingtitle.SetLabel('loading...')
         self.panel.Layout()
+        
+        self.dsWidth = wx.GetDisplaySize().width
+        self.dsHeight = wx.GetDisplaySize().height
 
         vidurl = 'https://www.youtube.com/watch?v=' + vidid
 
         if self.mode == "V":
-            playerparams = ['mpv', '--geometry=720x360', '--player-operation-mode=pseudo-gui', '--', vidurl]
+            # Currently in video mode.  We need to determine if the screen is
+            # in landscape or portrait mode
+            lpMode = "portrait"
+            if self.dsWidth >= self.dsHeight:
+                lpMode = "landscape"
+                playerparams = [
+                    'mpv', 
+                    #'--geometry=1440x' + str(round(self.dsHeight * self.scaleFactor)), 
+                    '--fullscreen',
+                    '--player-operation-mode=pseudo-gui', 
+                    '--ytdl-format="(bestvideo[height<=720]+bestaudio)"',
+                    '--', 
+                    vidurl]
+                #mpv --ytdl-format="(bestvideo[height<=1080]+bestaudio)[ext=webm]/bestvideo[height<=1080]+bestaudio/best[height<=1080]/bestvideo+bestaudio/best" "${url}"
+            else:
+                playerparams = [
+                    'mpv', 
+                    #'--geometry=' + str(round(self.dsWidth * self.scaleFactor)) + 'x720', 
+                    '--autofit=100%x100%',
+                    '--player-operation-mode=pseudo-gui', 
+                    #'--ytdl-format="(bestvideo[height<=480]+bestaudio)"',
+                    '--', 
+                    vidurl]
         else:
             playerparams = ['mpv', '--no-video', '--', vidurl]
 
@@ -175,7 +210,11 @@ class MyFrame(wx.Frame):
         
 
     def DoSearch(self, criteria):
-        self.criteria = criteria
+        if criteria is None:
+            criteria = "linux mobile"
+        else:
+            self.criteria = criteria
+            
         self.videos.Clear(True)
 
         videosSearch = VideosSearch(criteria, limit=10)
@@ -218,7 +257,8 @@ class MyFrame(wx.Frame):
                 self.vidimgbtn.vidtitle = vid['title']
                 self.Bind(wx.EVT_BUTTON, self.OnVideoSelect, self.vidimgbtn)
 
-                self.videos.Add(self.vidimgbtn, 0, wx.ALIGN_CENTER|wx.SHAPED, 0)
+                #self.videos.Add(self.vidimgbtn, 0, wx.ALIGN_CENTER|wx.SHAPED, 0)
+                self.videos.Add(self.vidimgbtn, 0, wx.ALIGN_LEFT | wx.SHAPED, 0)
             
             # Create a Box to put the video meta data inside of
             self.videometa = wx.BoxSizer(wx.HORIZONTAL)
