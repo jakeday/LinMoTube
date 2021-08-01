@@ -7,3 +7,4 @@ Categories=Application
 Icon=linmotube
 Exec=linmotube
 StartupWMClass=linmotube
+X-Purism-FormFactor=Workstation;Mobile;
