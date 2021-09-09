@@ -17,7 +17,6 @@ from PIL import Image
 class MyFrame(wx.Frame):
     def __init__(self, parent, title):
         wx.Frame.__init__(self, parent, -1, title, size=(300, 420))
-        #wx.Frame.__init__(self, parent, -1, title)
 		
         self.watch = None
         self.mode = "V"
@@ -42,8 +41,6 @@ class MyFrame(wx.Frame):
         self.search.AddSpacer(5)
 
         self.searchtext = wx.SearchCtrl(self.panel, value="", style=wx.TE_RICH)
-        #self.searchtext.SetForegroundColour(wx.Colour(0, 0, 0))
-        #self.searchtext.SetBackgroundColour(wx.Colour(255, 255, 255))
         self.search.Add(self.searchtext, 1, wx.EXPAND, 5)
 
         self.searchbtn = wx.Button(self.panel, label="Go", size=(50, 30))
@@ -71,7 +68,6 @@ class MyFrame(wx.Frame):
         wx.InitAllImageHandlers()
 
         self.videopanel.SetAutoLayout(1)
-        self.videopanel.SetupScrolling(False, True)
         self.videopanel.SetSizer(self.videos)
 
         self.sizer.Add(self.videopanel, 1, wx.EXPAND, 10)
@@ -205,10 +201,7 @@ class MyFrame(wx.Frame):
         self.stopbtn.Show()
         self.playingtitle.SetLabel(evt.GetEventObject().vidtitle)
         self.panel.Layout()
-        
-        
-        
-
+ 
     def DoSearch(self, criteria):
         if criteria is None:
             criteria = "linux mobile"
@@ -219,7 +212,6 @@ class MyFrame(wx.Frame):
 
         videosSearch = VideosSearch(criteria, limit=10)
         results = videosSearch.result()['result']
-        
 
         for vid in results :
             if self.mode == "V":
@@ -240,7 +232,6 @@ class MyFrame(wx.Frame):
                 vidimg = wx.Image("/tmp/" + thumbname, wx.BITMAP_TYPE_ANY)
                 W = vidimg.GetWidth()
                 H = vidimg.GetHeight()
-                #thumbsize = 300
                 thumbsize = 360
                 if W > H:
                     thmw = thumbsize
@@ -257,7 +248,6 @@ class MyFrame(wx.Frame):
                 self.vidimgbtn.vidtitle = vid['title']
                 self.Bind(wx.EVT_BUTTON, self.OnVideoSelect, self.vidimgbtn)
 
-                #self.videos.Add(self.vidimgbtn, 0, wx.ALIGN_CENTER|wx.SHAPED, 0)
                 self.videos.Add(self.vidimgbtn, 0, wx.ALIGN_LEFT | wx.SHAPED, 0)
             
             # Create a Box to put the video meta data inside of
@@ -308,8 +298,7 @@ class MyFrame(wx.Frame):
             
             self.views = wx.StaticText(self.videopanel, label=vid['viewCount']['short'])
             self.views.SetFont(font);
-            
-            
+ 
             # Add the name, views, age box to the videoTitleBox
             nameViewsAgeBox.Add(self.channel, 1, wx.LEFT|wx.EXPAND, 10)
             nameViewsAgeBox.Add(self.views, 1, wx.LEFT|wx.EXPAND, 10)
@@ -320,7 +309,6 @@ class MyFrame(wx.Frame):
             
             # Add everything to the full card
             self.videos.Add(self.videometa, 1, wx.EXPAND, 0)
-
 
             if self.mode == "M":
                 self.playbtn = wx.BitmapButton(self.videopanel, wx.ID_ANY, wx.Bitmap(self.playimg), size=(50, 50), style=wx.NO_BORDER|wx.BU_EXACTFIT)
@@ -335,6 +323,8 @@ class MyFrame(wx.Frame):
             self.videos.AddSpacer(10)
 
             self.panel.Layout()
+
+            self.videopanel.SetupScrolling(False, True, 20, 20, True, True)
 
 class MyApp(wx.App):
     def OnInit(self):
