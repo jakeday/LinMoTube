@@ -4,9 +4,6 @@
 # v1.0
 # Basic GUI for YouTube on Linux Mobile
 #----------------------------------------------------------------------
-#
-# 2021-07-24 Updated to clean up interface a bit github.com/gurudvlp
-#
 
 import os, requests, io, sys, subprocess, wx, json, threading
 import wx.lib.scrolledpanel as scrolled
@@ -50,8 +47,8 @@ class MyFrame(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.OnVideoSearch, self.searchbtn)
 
         self.videoimg = wx.Image(os.path.join(self.my_path, 'assets/video.png'), wx.BITMAP_TYPE_ANY)
-        self.videoimg = self.videoimg.Scale(20, 20, wx.IMAGE_QUALITY_HIGH)
-        self.modebtn = wx.BitmapButton(self.panel, wx.ID_ANY, wx.Bitmap(self.videoimg), size=(30, 30), style=wx.NO_BORDER|wx.BU_EXACTFIT)
+        self.videoimg = self.videoimg.Scale(16, 16, wx.IMAGE_QUALITY_HIGH)
+        self.modebtn = wx.BitmapButton(self.panel, wx.ID_ANY, wx.Bitmap(self.videoimg), pos=(0, 0), size=(30, 30), style=wx.NO_BORDER)
         self.search.Add(self.modebtn, 0, wx.RIGHT, 5)
         self.Bind(wx.EVT_BUTTON, self.OnToggleMode, self.modebtn)
 
@@ -76,7 +73,7 @@ class MyFrame(wx.Frame):
 
         self.stopimg = wx.Image(os.path.join(self.my_path, 'assets/stop.png'), wx.BITMAP_TYPE_ANY)
         self.stopimg = self.stopimg.Scale(30, 30, wx.IMAGE_QUALITY_HIGH)
-        self.stopbtn = wx.BitmapButton(self.panel, wx.ID_ANY, wx.Bitmap(self.stopimg), size=(50, 50), style=wx.NO_BORDER|wx.BU_EXACTFIT)
+        self.stopbtn = wx.BitmapButton(self.panel, wx.ID_ANY, wx.Bitmap(self.stopimg), size=(50, 50), style=wx.NO_BORDER)
         self.controls.Add(self.stopbtn, 1, wx.ALIGN_CENTER|wx.ALL, 5)
         self.Bind(wx.EVT_BUTTON, self.OnStopVideo, self.stopbtn)
 
@@ -93,7 +90,7 @@ class MyFrame(wx.Frame):
         self.panel.Layout()
 
         self.musicimg = wx.Image(os.path.join(self.my_path, 'assets/music.png'), wx.BITMAP_TYPE_ANY)
-        self.musicimg = self.musicimg.Scale(20, 20, wx.IMAGE_QUALITY_HIGH)
+        self.musicimg = self.musicimg.Scale(16, 16, wx.IMAGE_QUALITY_HIGH)
 
         self.playimg = wx.Image(os.path.join(self.my_path, 'assets/play.png'), wx.BITMAP_TYPE_ANY)
         self.playimg = self.playimg.Scale(30, 30, wx.IMAGE_QUALITY_HIGH)
