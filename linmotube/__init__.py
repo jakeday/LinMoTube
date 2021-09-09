@@ -104,10 +104,6 @@ class MyFrame(wx.Frame):
         
         dsSize = wx.GetDisplaySize()
         
-        print("Display Size W: " + str(wx.GetDisplaySize().width))
-        print("Display Size H: " + str(wx.GetDisplaySize().height))
-        print("Scaling Factor: " + str(self.scaleFactor))
-        
         wx.CallLater(0, self.DoSearch, None)
 
     def getOriginalIdleTime(self):
@@ -126,7 +122,7 @@ class MyFrame(wx.Frame):
 
     def OnToggleMode(self, evt):
         if self.mode == "V":
-            self.mode ="M"
+            self.mode = "M"
             self.modebtn.SetBitmap(wx.Bitmap(self.musicimg))
         else:
             self.mode = "V"
@@ -256,7 +252,19 @@ class MyFrame(wx.Frame):
             # This will be split into two columns.
             # The left column will have the channel avatar, the right
             # column is going to be the title, channel name and views
-            channelthumb = vid['channel']['thumbnails'][0]['url']
+
+            if self.mode == "M":
+                self.playbtn = wx.BitmapButton(self.videopanel, wx.ID_ANY, wx.Bitmap(self.playimg), size=(50, 50), style=wx.NO_BORDER|wx.BU_EXACTFIT)
+                self.playbtn.vidid = vid['id']
+                self.playbtn.vidtitle = vid['title']
+                self.videometa.Add(self.playbtn, 0, wx.RIGHT)
+                self.Bind(wx.EVT_BUTTON, self.OnVideoSelect, self.playbtn)
+
+            # for music mode, we use the thumbnail instead of the channel image
+            if self.mode == "M":
+                channelthumb = vid['thumbnails'][0]['url']
+            else:
+                channelthumb = vid['channel']['thumbnails'][0]['url']
 
             vurl = urlparse(channelthumb)
             thumbname = os.path.basename(vurl.path)
@@ -284,7 +292,12 @@ class MyFrame(wx.Frame):
             self.vidtitle = wx.StaticText(self.videopanel, label=vid['title'])
             font = wx.Font(11, wx.NORMAL, wx.NORMAL, wx.NORMAL)
             self.vidtitle.SetFont(font)
-            self.vidtitle.Wrap(290)
+
+            if self.mode == "M":
+                self.vidtitle.Wrap(240)
+            else:
+                self.vidtitle.Wrap(290)
+
             self.vidtitle.vidid = vid['id']
             self.vidtitle.vidtitle = vid['title']
             
@@ -309,16 +322,6 @@ class MyFrame(wx.Frame):
             
             # Add everything to the full card
             self.videos.Add(self.videometa, 1, wx.EXPAND, 0)
-
-            if self.mode == "M":
-                self.playbtn = wx.BitmapButton(self.videopanel, wx.ID_ANY, wx.Bitmap(self.playimg), size=(50, 50), style=wx.NO_BORDER|wx.BU_EXACTFIT)
-                self.playbtn.vidid = vid['id']
-                self.playbtn.vidtitle = vid['title']
-                self.vidcard.Add(self.playbtn, 0, wx.RIGHT)
-                self.Bind(wx.EVT_BUTTON, self.OnVideoSelect, self.playbtn)
-                self.vidtitle.Wrap(250)
-                self.vidtitle.SetForegroundColour('black')
-                self.vidtitle.SetBackgroundColour('white')
 
             self.videos.AddSpacer(10)
 
