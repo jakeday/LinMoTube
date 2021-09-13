@@ -51,7 +51,7 @@ class LinMoTube(Gtk.Window):
         logoimg = Gtk.Image.new_from_pixbuf(logopb)
         searchbox.pack_start(logoimg, False, False, 0)
 
-        self.searchentry = Gtk.Entry()
+        self.searchentry = Gtk.SearchEntry()
         self.searchentry.set_text("")
         self.searchentry.connect("activate", self.OnVideoSearch)
         self.searchentry.get_style_context().add_class('app-theme')
