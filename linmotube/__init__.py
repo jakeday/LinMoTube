@@ -11,7 +11,7 @@ from youtubesearchpython import *
 from PIL import Image
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, Gdk, GdkPixbuf, Gio
+from gi.repository import Gtk, Gdk, GdkPixbuf, Gio, GLib
 
 class LinMoTube(Gtk.Window):
     def __init__(self):
@@ -121,7 +121,8 @@ class LinMoTube(Gtk.Window):
 
         self.GetOriginalIdleTime()
 
-        self.DoSearch(None, True)
+        x = threading.Thread(target=self.DoSearch, args=(None, True))
+        x.start()
 
     def GetOriginalIdleTime(self):
         sbprocess = subprocess.Popen(['gsettings', 'get', 'org.gnome.desktop.session', 'idle-delay'], stdout=subprocess.PIPE)
@@ -137,16 +138,22 @@ class LinMoTube(Gtk.Window):
             self.mode = "V"
             self.modebtn.get_child().set_from_pixbuf(self.videopb)
 
-        self.DoSearch(self.criteria, True)
+        x = threading.Thread(target=self.DoSearch, args=(self.criteria, True))
+        x.start()
 
     def OnVideoSearch(self, button):
-        self.DoSearch(self.searchentry.get_text(), True)
+        x = threading.Thread(target=self.DoSearch, args=(self.searchentry.get_text(), True))
+        x.start()
 
     def DoSearchMore(self, swin, pos, dist):
         if pos == Gtk.PositionType.BOTTOM:
-            self.DoSearch(self.criteria, False)
+            x = threading.Thread(target=self.DoSearch, args=(self.criteria, False))
+            x.start()
 
     def DoSearch(self, criteria, clear):
+        GLib.idle_add(self.DoSearchBackground, criteria, clear)
+
+    def DoSearchBackground(self, criteria, clear):
         self.criteria = criteria
 
         if clear:
