@@ -32,8 +32,6 @@ LinMoTube Search | LinMoTube Playback | LinMoTube Music
 
 ### TODO
 
-Implement pagination
-
 Add support for filters
 
 Additional controls for playback
