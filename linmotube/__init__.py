@@ -82,6 +82,7 @@ class LinMoTube(Gtk.Window):
 
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scrolled.connect("edge-reached", self.DoSearchMore, 90)
 
         container.pack_start(scrolled, True, True, 0)
 
@@ -120,7 +121,7 @@ class LinMoTube(Gtk.Window):
 
         self.GetOriginalIdleTime()
 
-        self.DoSearch(None)
+        self.DoSearch(None, True)
 
     def GetOriginalIdleTime(self):
         sbprocess = subprocess.Popen(['gsettings', 'get', 'org.gnome.desktop.session', 'idle-delay'], stdout=subprocess.PIPE)
@@ -136,21 +137,29 @@ class LinMoTube(Gtk.Window):
             self.mode = "V"
             self.modebtn.get_child().set_from_pixbuf(self.videopb)
 
-        self.DoSearch(self.criteria)
+        self.DoSearch(self.criteria, True)
 
     def OnVideoSearch(self, button):
-        self.DoSearch(self.searchentry.get_text())
+        self.DoSearch(self.searchentry.get_text(), True)
 
-    def DoSearch(self, criteria):
+    def DoSearchMore(self, swin, pos, dist):
+        if pos == Gtk.PositionType.BOTTOM:
+            self.DoSearch(self.criteria, False)
+
+    def DoSearch(self, criteria, clear):
         self.criteria = criteria
 
-        videos = self.videolist.get_children()
-        for video in videos:
-            if video is not None:
-                self.videolist.remove(video)
+        if clear:
+            videos = self.videolist.get_children()
+            for video in videos:
+                if video is not None:
+                    self.videolist.remove(video)
 
-        videosSearch = VideosSearch(self.criteria, limit=10)
-        results = videosSearch.result()['result']
+        if clear:
+            self.videosSearch = VideosSearch(self.criteria, limit=10)
+        else:
+            self.videosSearch.next()
+        results = self.videosSearch.result()['result']
 
         for vid in results :
             vidcard = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
