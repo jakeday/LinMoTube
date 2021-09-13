@@ -3,12 +3,8 @@
   background-color: rgb(255, 255, 255);
   color: rgb(0, 0, 0);
 }
-.app-theme label {
+.app-theme * {
   color: rgb(0, 0, 0);
-}
-.app-theme label * {
-  color: rgb(0, 0, 0);
-  text-decoration: none;
 }
 .no-border {
   border: none;

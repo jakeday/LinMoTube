@@ -33,6 +33,7 @@ class LinMoTube(Gtk.Window):
         self.watch = None
 
         header = Gtk.HeaderBar(title="LinMoTube")
+        header.get_style_context().add_class('app-theme')
         header.props.show_close_button = True
 
         self.set_titlebar(header)
