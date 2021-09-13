@@ -82,7 +82,7 @@ class LinMoTube(Gtk.Window):
 
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        scrolled.connect("edge-reached", self.DoSearchMore, 90)
+        scrolled.connect("edge-reached", self.DoSearchMore, 100)
 
         container.pack_start(scrolled, True, True, 0)
 
