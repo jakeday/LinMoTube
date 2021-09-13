@@ -91,6 +91,7 @@ class LinMoTube(Gtk.Window):
         scrolled.add(self.videolist)
 
         self.controls = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        self.controls.get_style_context().add_class('border-top')
         container.pack_end(self.controls, False, False, 0)
 
         nowplayinglabel = Gtk.Label(label="- Now Playing -")
