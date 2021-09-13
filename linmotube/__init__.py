@@ -1,217 +1,166 @@
 #----------------------------------------------------------------------
 # LinMoTube
 # by Jake Day
-# v1.0
+# v1.1
 # Basic GUI for YouTube on Linux Mobile
 #----------------------------------------------------------------------
 
-import os, requests, io, sys, subprocess, wx, json, threading
-import wx.lib.scrolledpanel as scrolled
+import os, requests, io, sys, subprocess, gi, json, threading
 from urllib.parse import urlparse
 from youtubesearchpython import *
 from PIL import Image
 
-class MyFrame(wx.Frame):
-    def __init__(self, parent, title):
-        wx.Frame.__init__(self, parent, -1, title, size=(300, 420))
-		
-        self.watch = None
-        self.mode = "V"
-        self.criteria = None
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk, Gdk, GdkPixbuf, Gio
 
-        self.panel = wx.Panel(self, wx.ID_ANY)
-        self.panel.SetForegroundColour(wx.Colour(0, 0, 0))
-        self.panel.SetBackgroundColour(wx.Colour(255, 255, 255))
-
-        self.sizer = wx.BoxSizer(wx.VERTICAL)
-
-        self.sizer.AddSpacer(5)
-
-        self.search = wx.BoxSizer(wx.HORIZONTAL)
+class LinMoTube(Gtk.Window):
+    def __init__(self):
+        super().__init__(title="LinMoTube")
+        self.set_border_width(10)
+        self.set_default_size(300, 420)
+        #self.maximize()
 
         self.my_path = os.path.abspath(os.path.dirname(__file__))
-        logoimg = wx.Image(os.path.join(self.my_path, 'assets/linmotube.png'), wx.BITMAP_TYPE_ANY)
-        logoimg = logoimg.Scale(30, 30, wx.IMAGE_QUALITY_HIGH)
-        logoimgBmp = wx.StaticBitmap(self.panel, wx.ID_ANY, wx.Bitmap(logoimg))
-        self.search.Add(logoimgBmp, 0, wx.LEFT, 5)
 
-        self.search.AddSpacer(5)
+        provider = Gtk.CssProvider()
+        provider.load_from_file(Gio.File.new_for_path(os.path.join(self.my_path, 'assets/linmotube.css')))
+        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
-        self.searchtext = wx.SearchCtrl(self.panel, value="", style=wx.TE_RICH)
-        self.search.Add(self.searchtext, 1, wx.EXPAND, 5)
+        self.get_style_context().add_class('app-theme')
 
-        self.searchbtn = wx.Button(self.panel, label="Go", size=(50, 30))
-        self.searchbtn.SetForegroundColour(wx.Colour(0, 0, 0))
-        self.searchbtn.SetBackgroundColour(wx.Colour(255, 255, 255))
-        self.search.Add(self.searchbtn, 0, wx.RIGHT, 5)
-        self.Bind(wx.EVT_BUTTON, self.OnVideoSearch, self.searchbtn)
+        self.mode = "V"
+        self.criteria = None
+        self.watch = None
 
-        self.videoimg = wx.Image(os.path.join(self.my_path, 'assets/video.png'), wx.BITMAP_TYPE_ANY)
-        self.videoimg = self.videoimg.Scale(16, 16, wx.IMAGE_QUALITY_HIGH)
-        self.modebtn = wx.BitmapButton(self.panel, wx.ID_ANY, wx.Bitmap(self.videoimg), pos=(0, 0), size=(30, 30), style=wx.NO_BORDER)
-        self.search.Add(self.modebtn, 0, wx.RIGHT, 5)
-        self.Bind(wx.EVT_BUTTON, self.OnToggleMode, self.modebtn)
+        header = Gtk.HeaderBar(title="LinMoTube")
+        header.props.show_close_button = True
 
-        self.sizer.Add(self.search, flag=wx.EXPAND)
+        self.set_titlebar(header)
 
-        self.sizer.AddSpacer(5)
+        container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        self.add(container)
 
-        self.videopanel = scrolled.ScrolledPanel(self.panel, -1)
-        self.videopanel.SetForegroundColour(wx.Colour(0, 0, 0))
-        self.videopanel.SetBackgroundColour(wx.Colour(255, 255, 255))
+        searchbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        container.add(searchbox)
 
-        self.videos = wx.BoxSizer(wx.VERTICAL)
+        logopb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+            filename=os.path.join(self.my_path, 'assets/linmotube.png'),
+            width=30, 
+            height=30, 
+            preserve_aspect_ratio=True)
+        logoimg = Gtk.Image.new_from_pixbuf(logopb)
+        searchbox.pack_start(logoimg, False, False, 0)
 
-        wx.InitAllImageHandlers()
+        self.searchentry = Gtk.Entry()
+        self.searchentry.set_text("")
+        self.searchentry.connect("activate", self.OnVideoSearch)
+        self.searchentry.get_style_context().add_class('app-theme')
+        searchbox.pack_start(self.searchentry, True, True, 0)
 
-        self.videopanel.SetAutoLayout(1)
-        self.videopanel.SetSizer(self.videos)
+        searchbtn = Gtk.Button(label="Go")
+        searchbtn.connect("clicked", self.OnVideoSearch)
+        searchbtn.get_style_context().add_class('app-theme')
+        searchbox.pack_start(searchbtn, False, False, 0)
 
-        self.sizer.Add(self.videopanel, 1, wx.EXPAND, 10)
+        self.musicpb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+            filename=os.path.join(self.my_path, 'assets/music.png'),
+            width=24, 
+            height=24, 
+            preserve_aspect_ratio=True)
+        self.musicimg = Gtk.Image.new_from_pixbuf(self.musicpb)
+        self.videopb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+            filename=os.path.join(self.my_path, 'assets/video.png'),
+            width=24, 
+            height=24, 
+            preserve_aspect_ratio=True)
+        self.videoimg = Gtk.Image.new_from_pixbuf(self.videopb)
+        self.modebtn = Gtk.Button()
+        self.modebtn.connect("clicked", self.OnToggleMode)
+        self.modebtn.add(self.videoimg)
+        self.modebtn.get_style_context().add_class('app-theme')
+        searchbox.pack_start(self.modebtn, False, False, 0)
 
-        self.controls = wx.StaticBoxSizer(wx.VERTICAL, self.panel, label='Now Playing')
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
 
-        self.stopimg = wx.Image(os.path.join(self.my_path, 'assets/stop.png'), wx.BITMAP_TYPE_ANY)
-        self.stopimg = self.stopimg.Scale(30, 30, wx.IMAGE_QUALITY_HIGH)
-        self.stopbtn = wx.BitmapButton(self.panel, wx.ID_ANY, wx.Bitmap(self.stopimg), size=(50, 50), style=wx.NO_BORDER)
-        self.controls.Add(self.stopbtn, 1, wx.ALIGN_CENTER|wx.ALL, 5)
-        self.Bind(wx.EVT_BUTTON, self.OnStopVideo, self.stopbtn)
+        container.pack_start(scrolled, True, True, 0)
 
-        self.playingtitle = wx.StaticText(self.panel, label='Loading...')
-        self.playingtitle.Wrap(300)
-        self.controls.Add(self.playingtitle, 0, wx.ALIGN_CENTER|wx.ALL, 10)
+        self.videolist = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        scrolled.add(self.videolist)
 
-        self.sizer.Add(self.controls, flag=wx.EXPAND)
+        self.controls = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        container.pack_end(self.controls, False, False, 0)
 
-        self.stopbtn.Hide()
-        self.playingtitle.SetLabel('no media selected')
+        nowplayinglabel = Gtk.Label(label="- Now Playing -")
+        nowplayinglabel.set_justify(Gtk.Justification.LEFT)
+        self.controls.pack_start(nowplayinglabel, False, False, 0)
 
-        self.panel.SetSizerAndFit(self.sizer)
-        self.panel.Layout()
+        playback = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        self.controls.pack_start(playback, False, False, 0)
 
-        self.musicimg = wx.Image(os.path.join(self.my_path, 'assets/music.png'), wx.BITMAP_TYPE_ANY)
-        self.musicimg = self.musicimg.Scale(16, 16, wx.IMAGE_QUALITY_HIGH)
+        stoppb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+            filename=os.path.join(self.my_path, 'assets/stop.png'),
+            width=24, 
+            height=24, 
+            preserve_aspect_ratio=True)
+        stopimg = Gtk.Image.new_from_pixbuf(stoppb)
+        stopbtn = Gtk.Button()
+        stopbtn.add(stopimg)
+        stopbtn.connect("clicked", self.OnStopVideo)
+        stopbtn.get_style_context().add_class('app-theme')
+        playback.pack_start(stopbtn, False, False, 0)
 
-        self.playimg = wx.Image(os.path.join(self.my_path, 'assets/play.png'), wx.BITMAP_TYPE_ANY)
-        self.playimg = self.playimg.Scale(30, 30, wx.IMAGE_QUALITY_HIGH)
+        self.currentlabel = Gtk.Label(label="no media selected")
+        self.currentlabel.set_justify(Gtk.Justification.CENTER)
+        self.currentlabel.set_line_wrap(True)
+        self.currentlabel.set_max_width_chars(68)
+        playback.pack_start(self.currentlabel, True, True, 0)
 
-        self.getOriginalIdleTime()
-            
-        self.scaleFactor = wx.GetApp().GetTopWindow().GetContentScaleFactor()
-        
-        dsSize = wx.GetDisplaySize()
-        
-        wx.CallLater(0, self.DoSearch, None)
+        self.show_all()
 
-    def getOriginalIdleTime(self):
-        
+        self.GetOriginalIdleTime()
+
+        self.DoSearch(None)
+
+    def GetOriginalIdleTime(self):
         sbprocess = subprocess.Popen(['gsettings', 'get', 'org.gnome.desktop.session', 'idle-delay'], stdout=subprocess.PIPE)
         out, err = sbprocess.communicate()
         
         self.idleTime = out.decode('UTF-8').replace("uint32", "").strip()
 
-
-    def OnClose(self, evt):
-        self.Close()
-
-    def OnVideoSearch(self, evt):
-        self.DoSearch(self.searchtext.GetValue())
-
-    def OnToggleMode(self, evt):
+    def OnToggleMode(self, button):
         if self.mode == "V":
             self.mode = "M"
-            self.modebtn.SetBitmap(wx.Bitmap(self.musicimg))
+            self.modebtn.get_child().set_from_pixbuf(self.musicpb)
         else:
             self.mode = "V"
-            self.modebtn.SetBitmap(wx.Bitmap(self.videoimg))
+            self.modebtn.get_child().set_from_pixbuf(self.videopb)
 
         self.DoSearch(self.criteria)
 
-    def OnStopVideo(self, evt):
-        if self.watch is not None:
-            poll = self.watch.poll()
-            if poll is None:
-                self.watch.terminate()
+    def OnVideoSearch(self, button):
+        self.DoSearch(self.searchentry.get_text())
 
-        self.stopbtn.Hide()
-        self.playingtitle.SetLabel('no media selected')
-        self.panel.Layout()
-        
-        # Set screen blanking back to original value
-        sbparams = ['gsettings', 'set', 'org.gnome.desktop.session', 'idle-delay', self.idleTime]
-        sbproc = subprocess.Popen(sbparams, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
-
-    def OnVideoSelect(self, evt):
-        vidid = evt.GetEventObject().vidid
-
-        if self.watch is not None:
-            poll = self.watch.poll()
-            if poll is None:
-                self.watch.terminate()
-
-        self.playingtitle.SetLabel('loading...')
-        self.panel.Layout()
-        
-        self.dsWidth = wx.GetDisplaySize().width
-        self.dsHeight = wx.GetDisplaySize().height
-
-        vidurl = 'https://www.youtube.com/watch?v=' + vidid
-
-        if self.mode == "V":
-            # Currently in video mode.  We need to determine if the screen is
-            # in landscape or portrait mode
-            lpMode = "portrait"
-            if self.dsWidth >= self.dsHeight:
-                lpMode = "landscape"
-                playerparams = [
-                    'mpv', 
-                    #'--geometry=1440x' + str(round(self.dsHeight * self.scaleFactor)), 
-                    '--fullscreen',
-                    '--player-operation-mode=pseudo-gui', 
-                    '--ytdl-format="(bestvideo[height<=720]+bestaudio)"',
-                    '--', 
-                    vidurl]
-                #mpv --ytdl-format="(bestvideo[height<=1080]+bestaudio)[ext=webm]/bestvideo[height<=1080]+bestaudio/best[height<=1080]/bestvideo+bestaudio/best" "${url}"
-            else:
-                playerparams = [
-                    'mpv', 
-                    #'--geometry=' + str(round(self.dsWidth * self.scaleFactor)) + 'x720', 
-                    '--autofit=100%x100%',
-                    '--player-operation-mode=pseudo-gui', 
-                    #'--ytdl-format="(bestvideo[height<=480]+bestaudio)"',
-                    '--', 
-                    vidurl]
-        else:
-            playerparams = ['mpv', '--no-video', '--', vidurl]
-
-        # settings from conf: --ytdl-format="bestvideo[height<=480]+bestaudio/best"
-        self.watch = subprocess.Popen(playerparams, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
-
-        # Disable screen blanking for the duration of the video
-        sbparams = ['gsettings', 'set', 'org.gnome.desktop.session', 'idle-delay', '0']
-        sbproc = subprocess.Popen(sbparams, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
-        
-        self.stopbtn.Show()
-        self.playingtitle.SetLabel(evt.GetEventObject().vidtitle)
-        self.panel.Layout()
- 
     def DoSearch(self, criteria):
-        if criteria is None:
-            criteria = "linux mobile"
-        else:
-            self.criteria = criteria
-            
-        self.videos.Clear(True)
+        self.criteria = criteria
 
-        videosSearch = VideosSearch(criteria, limit=10)
+        videos = self.videolist.get_children()
+        for video in videos:
+            if video is not None:
+                self.videolist.remove(video)
+
+        videosSearch = VideosSearch(self.criteria, limit=10)
         results = videosSearch.result()['result']
 
         for vid in results :
+            vidcard = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+            self.videolist.add(vidcard)
+
             if self.mode == "V":
                 vidthumb = vid['thumbnails'][0]['url']
 
-                vurl = urlparse(vidthumb)
-                thumbname = os.path.basename(vurl.path)
+                vidurl = urlparse(vidthumb)
+                thumbname = os.path.basename(vidurl.path)
 
                 content = requests.get(vidthumb).content
 
@@ -222,42 +171,22 @@ class MyFrame(wx.Frame):
                 im = Image.open("/tmp/" + thumbname).convert("RGB")
                 im.save("/tmp/" + thumbname, "jpeg")
 
-                vidimg = wx.Image("/tmp/" + thumbname, wx.BITMAP_TYPE_ANY)
-                W = vidimg.GetWidth()
-                H = vidimg.GetHeight()
-                thumbsize = 360
-                if W > H:
-                    thmw = thumbsize
-                    thmh = thumbsize * H / W
-                else:
-                    thmh = thumbsize
-                    thmw = thumbsize * W / H
-                vidimg = vidimg.Scale(int(thmw), int(thmh))
+                thumbpb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+                    filename=os.path.join('/tmp/' + thumbname),
+                    width=300,
+                    height=200,
+                    preserve_aspect_ratio=True)
+                thumbimg = Gtk.Image.new_from_pixbuf(thumbpb)
+                vidbtn = Gtk.Button()
+                vidbtn.add(thumbimg)
+                vidbtn.connect("clicked", self.OnPlayVideo, None, vid['id'], vid['title'])
+                vidbtn.get_style_context().add_class('app-theme')
+                vidbtn.get_style_context().add_class('no-border')
+                vidcard.pack_start(vidbtn, True, True, 0)
 
-                self.vidimgbtn = wx.BitmapButton(self.videopanel, wx.ID_ANY, wx.Bitmap(vidimg), pos=(0, 0), size=(vidimg.GetWidth(), vidimg.GetHeight()),
-                                                 style=wx.NO_BORDER|wx.BU_EXACTFIT)
-                self.vidimgbtn.SetBackgroundColour(wx.Colour(255, 255, 255))
-                self.vidimgbtn.vidid = vid['id']
-                self.vidimgbtn.vidtitle = vid['title']
-                self.Bind(wx.EVT_BUTTON, self.OnVideoSelect, self.vidimgbtn)
-
-                self.videos.Add(self.vidimgbtn, 0, wx.ALIGN_LEFT | wx.SHAPED, 0)
+            vidmeta = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+            vidcard.pack_start(vidmeta, False, False, 0)
             
-            # Create a Box to put the video meta data inside of
-            self.videometa = wx.BoxSizer(wx.HORIZONTAL)
-            
-            # This will be split into two columns.
-            # The left column will have the channel avatar, the right
-            # column is going to be the title, channel name and views
-
-            if self.mode == "M":
-                self.playbtn = wx.BitmapButton(self.videopanel, wx.ID_ANY, wx.Bitmap(self.playimg), size=(50, 50), style=wx.NO_BORDER|wx.BU_EXACTFIT)
-                self.playbtn.vidid = vid['id']
-                self.playbtn.vidtitle = vid['title']
-                self.videometa.Add(self.playbtn, 0, wx.RIGHT)
-                self.Bind(wx.EVT_BUTTON, self.OnVideoSelect, self.playbtn)
-
-            # for music mode, we use the thumbnail instead of the channel image
             if self.mode == "M":
                 channelthumb = vid['thumbnails'][0]['url']
             else:
@@ -275,66 +204,94 @@ class MyFrame(wx.Frame):
             im = Image.open("/tmp/" + thumbname).convert("RGB")
             im.save("/tmp/" + thumbname, "jpeg")
 
-            channelimg = wx.Image("/tmp/" + thumbname, wx.BITMAP_TYPE_ANY)
-            channelimg = channelimg.Scale(68, 68)
+            channelpb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+                filename=os.path.join('/tmp/' + thumbname),
+                width=68,
+                height=68,
+                preserve_aspect_ratio=False)
+            channelimg = Gtk.Image.new_from_pixbuf(channelpb)
+            vidmeta.pack_start(channelimg, False, False, 0)
 
-            channelimgBmp = wx.StaticBitmap(self.videopanel, wx.ID_ANY, wx.Bitmap(channelimg))
-            self.videometa.Add(channelimgBmp, 0, wx.EXPAND, 0)
-            
-            # Now, the right column will have two rows.  The title, then the
-            # other data.
-            self.videoTitleBox = wx.BoxSizer(wx.VERTICAL)
-            
-            # Create the title, then add it to the title box
-            self.vidtitle = wx.StaticText(self.videopanel, label=vid['title'])
-            font = wx.Font(11, wx.NORMAL, wx.NORMAL, wx.NORMAL)
-            self.vidtitle.SetFont(font)
+            vidinfo = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+            vidmeta.pack_start(vidinfo, False, False, 0)
 
-            if self.mode == "M":
-                self.vidtitle.Wrap(240)
+            titlelabel = Gtk.Label()
+            titlelabel.set_markup("<a href=''><big><b>" + vid['title'].replace("&", "&amp;") + "</b></big></a>")
+            titlelabel.connect("activate-link", self.OnPlayVideo, vid['id'], vid['title'])
+            titlelabel.set_justify(Gtk.Justification.FILL)
+            titlelabel.set_line_wrap(True)
+            titlelabel.set_max_width_chars(68)
+            titlelabel.get_style_context().add_class('app-theme')
+            vidinfo.pack_start(titlelabel, False, False, 0)
+
+            viddets = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+            vidinfo.pack_start(viddets, False, False, 0)
+
+            if (vid['channel']['name'] != None):
+                channellabel = Gtk.Label()
+                channellabel.set_markup("<small>" + vid['channel']['name'].replace("&", "&amp;") + "</small>")
+                viddets.pack_start(channellabel, False, False, 0)
+
+            if (vid['viewCount']['short'] != None):
+                viewslabel = Gtk.Label()
+                viewslabel.set_markup("<small>" + vid['viewCount']['short'] + "</small>")
+                viddets.pack_end(viewslabel, False, False, 0)
+
+            self.show_all()
+
+    def OnPlayVideo(self, button, uri, vidid, vidtitle):
+        if self.watch is not None:
+            poll = self.watch.poll()
+            if poll is None:
+                self.watch.terminate()
+
+        self.currentlabel.set_text(vidtitle)
+
+        self.swidth = self.get_size().width
+        self.sheight = self.get_size().height
+
+        vidurl = 'https://www.youtube.com/watch?v=' + vidid
+
+        if self.mode == "V":
+            lpMode = "portrait"
+            if self.swidth >= self.sheight:
+                lpMode = "landscape"
+                playerparams = [
+                        'mpv', 
+                    '--fullscreen',
+                    '--player-operation-mode=pseudo-gui', 
+                    '--ytdl-format="(bestvideo[height<=720]+bestaudio)"',
+                    '--', 
+                    vidurl]
             else:
-                self.vidtitle.Wrap(290)
+                playerparams = [
+                        'mpv', 
+                    '--autofit=100%x100%',
+                    '--player-operation-mode=pseudo-gui', 
+                    '--', 
+                    vidurl]
+        else:
+            playerparams = ['mpv', '--no-video', '--', vidurl]
 
-            self.vidtitle.vidid = vid['id']
-            self.vidtitle.vidtitle = vid['title']
-            
-            self.videoTitleBox.Add(self.vidtitle, 0, wx.ALIGN_LEFT | wx.ALIGN_TOP, 0)
-            
-            # Now assemble the channel name, views, and age
-            nameViewsAgeBox = wx.BoxSizer(wx.HORIZONTAL)
-            font = wx.Font(9, wx.NORMAL, wx.NORMAL, wx.NORMAL)
-            self.channel = wx.StaticText(self.videopanel, label=vid['channel']['name'])
-            self.channel.SetFont(font)
-            
-            self.views = wx.StaticText(self.videopanel, label=vid['viewCount']['short'])
-            self.views.SetFont(font);
- 
-            # Add the name, views, age box to the videoTitleBox
-            nameViewsAgeBox.Add(self.channel, 1, wx.LEFT|wx.EXPAND, 10)
-            nameViewsAgeBox.Add(self.views, 1, wx.LEFT|wx.EXPAND, 10)
-            
-            # Add the avatar and text info to videometa container
-            self.videoTitleBox.Add(nameViewsAgeBox, 0, wx.LEFT, 0)
-            self.videometa.Add(self.videoTitleBox, 0, wx.LEFT, 0)
-            
-            # Add everything to the full card
-            self.videos.Add(self.videometa, 1, wx.EXPAND, 0)
+        self.watch = subprocess.Popen(playerparams, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
 
-            self.videos.AddSpacer(10)
-
-            self.panel.Layout()
-
-            self.videopanel.SetupScrolling(False, True, 20, 20, True, True)
-
-class MyApp(wx.App):
-    def OnInit(self):
-        frame = MyFrame(None, "LinMoTube")
-        self.SetTopWindow(frame)
-
-        frame.Show(True)
-        frame.Maximize(True)
+        sbparams = ['gsettings', 'set', 'org.gnome.desktop.session', 'idle-delay', '0']
+        sbproc = subprocess.Popen(sbparams, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
 
         return True
 
-app = MyApp()
-app.MainLoop()
+    def OnStopVideo(self, evt):
+        if self.watch is not None:
+            poll = self.watch.poll()
+            if poll is None:
+                self.watch.terminate()
+
+        self.currentlabel.set_text("no media selected")
+
+        sbparams = ['gsettings', 'set', 'org.gnome.desktop.session', 'idle-delay', self.idleTime]
+        sbproc = subprocess.Popen(sbparams, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
+        
+app = LinMoTube()
+app.connect("destroy", Gtk.main_quit)
+app.show_all()
+Gtk.main()

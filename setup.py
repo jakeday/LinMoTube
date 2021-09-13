@@ -5,7 +5,7 @@ import setuptools.command.build_py
 
 setuptools.setup(
     name='LinMoTube',
-    version='1.0',
+    version='1.1',
     description='LinMoTube',
     keywords='youtube',
     author='Jake Day',
