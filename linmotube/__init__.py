@@ -107,11 +107,11 @@ class LinMoTube(Gtk.Window):
             height=24, 
             preserve_aspect_ratio=True)
         stopimg = Gtk.Image.new_from_pixbuf(stoppb)
-        stopbtn = Gtk.Button()
-        stopbtn.add(stopimg)
-        stopbtn.connect("clicked", self.OnStopVideo)
-        stopbtn.get_style_context().add_class('app-theme')
-        playback.pack_start(stopbtn, False, False, 0)
+        self.stopbtn = Gtk.Button()
+        self.stopbtn.add(stopimg)
+        self.stopbtn.connect("clicked", self.OnStopVideo)
+        self.stopbtn.get_style_context().add_class('app-theme')
+        playback.pack_start(self.stopbtn, False, False, 0)
 
         self.currentlabel = Gtk.Label(label="no media selected")
         self.currentlabel.set_justify(Gtk.Justification.CENTER)
@@ -120,6 +120,7 @@ class LinMoTube(Gtk.Window):
         playback.pack_start(self.currentlabel, True, True, 0)
 
         self.show_all()
+        self.stopbtn.hide()
 
         self.GetOriginalIdleTime()
 
@@ -265,9 +266,20 @@ class LinMoTube(Gtk.Window):
             viddets.pack_end(viewslabel, False, False, 0)
 
         self.show_all()
+        if self.watch is not None:
+            poll = self.watch.poll()
+            if poll is None:
+                self.stopbtn.show()
+            else:
+                self.stopbtn.hide()
+                self.currentlabel.set_text("no media selected")
+        else:
+            self.stopbtn.hide()
+            self.currentlabel.set_text("no media selected")
 
     def OnPlayVideo(self, button, uri, id, title):
         self.currentlabel.set_text(title)
+        self.stopbtn.show()
         
         self.swidth = self.get_size().width
         self.sheight = self.get_size().height
@@ -320,6 +332,7 @@ class LinMoTube(Gtk.Window):
                 self.watch.terminate()
 
         self.currentlabel.set_text("no media selected")
+        self.stopbtn.hide()
 
         sbparams = ['gsettings', 'set', 'org.gnome.desktop.session', 'idle-delay', self.idleTime]
         sbproc = subprocess.Popen(sbparams, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
