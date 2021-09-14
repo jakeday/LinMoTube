@@ -83,7 +83,7 @@ class LinMoTube(Gtk.Window):
 
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        scrolled.connect("edge-reached", self.DoSearchMore, 100)
+        scrolled.connect("edge-reached", self.DoSearchMore, 70)
 
         container.pack_start(scrolled, True, True, 0)
 
@@ -153,16 +153,13 @@ class LinMoTube(Gtk.Window):
             x.start()
 
     def DoSearch(self, criteria, clear):
-        GLib.idle_add(self.DoSearchBackground, criteria, clear)
-
-    def DoSearchBackground(self, criteria, clear):
         self.criteria = criteria
 
+        if self.criteria == None:
+            self.criteria = "linux mobile"
+
         if clear:
-            videos = self.videolist.get_children()
-            for video in videos:
-                if video is not None:
-                    self.videolist.remove(video)
+            GLib.idle_add(self.DoClearVideoList)
 
         if clear:
             self.videosSearch = VideosSearch(self.criteria, limit=10)
@@ -171,8 +168,7 @@ class LinMoTube(Gtk.Window):
         results = self.videosSearch.result()['result']
 
         for vid in results :
-            vidcard = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-            self.videolist.add(vidcard)
+            thumbname = ""
 
             if self.mode == "V":
                 vidthumb = vid['thumbnails'][0]['url']
@@ -189,93 +185,112 @@ class LinMoTube(Gtk.Window):
                 im = Image.open("/tmp/" + thumbname).convert("RGB")
                 im.save("/tmp/" + thumbname, "jpeg")
 
-                thumbpb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-                    filename=os.path.join('/tmp/' + thumbname),
-                    width=300,
-                    height=200,
-                    preserve_aspect_ratio=True)
-                thumbimg = Gtk.Image.new_from_pixbuf(thumbpb)
-                vidbtn = Gtk.Button()
-                vidbtn.add(thumbimg)
-                vidbtn.connect("clicked", self.OnPlayVideo, None, vid['id'], vid['title'])
-                vidbtn.get_style_context().add_class('app-theme')
-                vidbtn.get_style_context().add_class('no-border')
-                vidcard.pack_start(vidbtn, True, True, 0)
-
-            vidmeta = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-            vidcard.pack_start(vidmeta, False, False, 0)
-            
             if self.mode == "M":
                 channelthumb = vid['thumbnails'][0]['url']
             else:
                 channelthumb = vid['channel']['thumbnails'][0]['url']
 
-            vurl = urlparse(channelthumb)
-            thumbname = os.path.basename(vurl.path)
+            channelurl = urlparse(channelthumb)
+            channelthumbname = os.path.basename(channelurl.path)
 
-            content = requests.get(channelthumb).content
+            channelcontent = requests.get(channelthumb).content
 
-            file = open("/tmp/" + thumbname, "wb")
-            file.write(content)
+            file = open("/tmp/" + channelthumbname, "wb")
+            file.write(channelcontent)
             file.close()
 
-            im = Image.open("/tmp/" + thumbname).convert("RGB")
-            im.save("/tmp/" + thumbname, "jpeg")
+            im = Image.open("/tmp/" + channelthumbname).convert("RGB")
+            im.save("/tmp/" + channelthumbname, "jpeg")
 
-            channelpb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+            GLib.idle_add(self.DoAddVideo, vid['id'], vid['title'], thumbname, channelthumbname, vid['channel']['name'], vid['viewCount']['short'])
+
+    def DoClearVideoList(self):
+        videos = self.videolist.get_children()
+        for video in videos:
+            if video is not None:
+                self.videolist.remove(video)
+
+    def DoAddVideo(self, id, title, thumbname, channelthumbname, channelname, viewcount):
+        vidcard = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        self.videolist.add(vidcard)
+
+        if self.mode == "V":
+            thumbpb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
                 filename=os.path.join('/tmp/' + thumbname),
-                width=68,
-                height=68,
-                preserve_aspect_ratio=False)
-            channelimg = Gtk.Image.new_from_pixbuf(channelpb)
-            vidmeta.pack_start(channelimg, False, False, 0)
+                width=300,
+                height=200,
+                preserve_aspect_ratio=True)
+            thumbimg = Gtk.Image.new_from_pixbuf(thumbpb)
+            vidbtn = Gtk.Button()
+            vidbtn.add(thumbimg)
+            vidbtn.connect("clicked", self.OnPlayVideo, None, id, title)
+            vidbtn.get_style_context().add_class('app-theme')
+            vidbtn.get_style_context().add_class('no-border')
+            vidcard.pack_start(vidbtn, True, True, 0)
 
-            vidinfo = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-            vidmeta.pack_start(vidinfo, False, False, 0)
+        vidmeta = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        vidcard.pack_start(vidmeta, False, False, 0)
+        
+        channelpb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+            filename=os.path.join('/tmp/' + channelthumbname),
+            width=68,
+            height=68,
+            preserve_aspect_ratio=False)
+        channelimg = Gtk.Image.new_from_pixbuf(channelpb)
+        vidmeta.pack_start(channelimg, False, False, 0)
 
-            titlelabel = Gtk.Label()
-            titlelabel.set_markup("<a href=''><big><b>" + vid['title'].replace("&", "&amp;") + "</b></big></a>")
-            titlelabel.connect("activate-link", self.OnPlayVideo, vid['id'], vid['title'])
-            titlelabel.set_justify(Gtk.Justification.FILL)
-            titlelabel.set_line_wrap(True)
-            titlelabel.set_max_width_chars(68)
-            titlelabel.get_style_context().add_class('app-theme')
-            vidinfo.pack_start(titlelabel, False, False, 0)
+        vidinfo = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        vidmeta.pack_start(vidinfo, False, False, 0)
 
-            viddets = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-            vidinfo.pack_start(viddets, False, False, 0)
+        titlelabel = Gtk.Label()
+        titlelabel.set_markup("<a href=''><big><b>" + title.replace("&", "&amp;") + "</b></big></a>")
+        titlelabel.connect("activate-link", self.OnPlayVideo, id, title)
+        titlelabel.set_justify(Gtk.Justification.FILL)
+        titlelabel.set_line_wrap(True)
+        titlelabel.set_max_width_chars(68)
+        titlelabel.get_style_context().add_class('app-theme')
+        vidinfo.pack_start(titlelabel, False, False, 0)
 
-            if (vid['channel']['name'] != None):
-                channellabel = Gtk.Label()
-                channellabel.set_markup("<small>" + vid['channel']['name'].replace("&", "&amp;") + "</small>")
-                viddets.pack_start(channellabel, False, False, 0)
+        viddets = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        vidinfo.pack_start(viddets, False, False, 0)
 
-            if (vid['viewCount']['short'] != None):
-                viewslabel = Gtk.Label()
-                viewslabel.set_markup("<small>" + vid['viewCount']['short'] + "</small>")
-                viddets.pack_end(viewslabel, False, False, 0)
+        if (channelname != None):
+            channellabel = Gtk.Label()
+            channellabel.set_markup("<small>" + channelname.replace("&", "&amp;") + "</small>")
+            viddets.pack_start(channellabel, False, False, 0)
 
-            self.show_all()
+        if (viewcount != None):
+            viewslabel = Gtk.Label()
+            viewslabel.set_markup("<small>" + viewcount + "</small>")
+            viddets.pack_end(viewslabel, False, False, 0)
 
-    def OnPlayVideo(self, button, uri, vidid, vidtitle):
+        self.show_all()
+
+    def OnPlayVideo(self, button, uri, id, title):
+        self.currentlabel.set_text(title)
+        
+        self.swidth = self.get_size().width
+        self.sheight = self.get_size().height
+
+        lpmode = "portrait"
+        if self.swidth >= self.sheight:
+            lpmode = "landscape"
+        
+        x = threading.Thread(target=self.DoPlayVideo, args=(button, uri, id, lpmode))
+        x.start()
+
+    def DoPlayVideo(self, button, uri, id, lpmode):
         if self.watch is not None:
             poll = self.watch.poll()
             if poll is None:
                 self.watch.terminate()
 
-        self.currentlabel.set_text(vidtitle)
-
-        self.swidth = self.get_size().width
-        self.sheight = self.get_size().height
-
-        vidurl = 'https://www.youtube.com/watch?v=' + vidid
+        vidurl = 'https://www.youtube.com/watch?v=' + id
 
         if self.mode == "V":
-            lpMode = "portrait"
-            if self.swidth >= self.sheight:
-                lpMode = "landscape"
+            if lpmode == "landscape":
                 playerparams = [
-                        'mpv', 
+                    'mpv', 
                     '--fullscreen',
                     '--player-operation-mode=pseudo-gui', 
                     '--ytdl-format="(bestvideo[height<=720]+bestaudio)"',
@@ -283,7 +298,7 @@ class LinMoTube(Gtk.Window):
                     vidurl]
             else:
                 playerparams = [
-                        'mpv', 
+                    'mpv', 
                     '--autofit=100%x100%',
                     '--player-operation-mode=pseudo-gui', 
                     '--', 
