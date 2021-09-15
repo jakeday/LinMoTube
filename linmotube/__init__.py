@@ -15,11 +15,13 @@ from gi.repository import Gtk, Gdk, GdkPixbuf, Gio, GLib
 
 class LinMoTube(Gtk.Window):
     def __init__(self):
-        super().__init__(title="LinMoTube")
+        Gtk.Window.__init__(self)
+        self.set_title("LinMoTube")
         self.set_border_width(10)
         self.set_default_size(300, 420)
         #self.maximize()
 
+    def draw(self):
         self.my_path = os.path.abspath(os.path.dirname(__file__))
         self.cache_path = os.path.expanduser("~/.cache/linmotube/")
 
@@ -364,5 +366,5 @@ class LinMoTube(Gtk.Window):
         
 app = LinMoTube()
 app.connect("destroy", Gtk.main_quit)
-app.show_all()
+app.draw()
 Gtk.main()
