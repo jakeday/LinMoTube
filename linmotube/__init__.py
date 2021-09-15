@@ -329,21 +329,31 @@ class LinMoTube(Gtk.Window):
         if self.mode == "V":
             if lpmode == "landscape":
                 playerparams = [
-                    'mpv', 
+                    'mpv',
                     '--fullscreen',
-                    '--player-operation-mode=pseudo-gui', 
+                    '--player-operation-mode=pseudo-gui',
                     '--ytdl-format="(bestvideo[height<=720]+bestaudio)"',
-                    '--', 
+                    '--stream-buffer-size=5MiB',
+                    '--demuxer-max-bytes=1024KiB',
+                    '--',
                     vidurl]
             else:
                 playerparams = [
-                    'mpv', 
+                    'mpv',
                     '--autofit=100%x100%',
-                    '--player-operation-mode=pseudo-gui', 
-                    '--', 
+                    '--player-operation-mode=pseudo-gui',
+                    '--stream-buffer-size=5MiB',
+                    '--demuxer-max-bytes=1024KiB',
+                    '--',
                     vidurl]
         else:
-            playerparams = ['mpv', '--no-video', '--', vidurl]
+            playerparams = [
+                'mpv',
+                '--no-video',
+                '--stream-buffer-size=5MiB',
+                '--demuxer-max-bytes=1024KiB',
+                '--',
+                vidurl]
 
         self.watch = subprocess.Popen(playerparams, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
 
