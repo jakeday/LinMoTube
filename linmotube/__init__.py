@@ -21,6 +21,10 @@ class LinMoTube(Gtk.Window):
         #self.maximize()
 
         self.my_path = os.path.abspath(os.path.dirname(__file__))
+        self.cache_path = os.path.expanduser("~/.cache/linmotube/")
+
+        if os.path.exists(self.cache_path) == False:
+            os.mkdir(self.cache_path)
 
         provider = Gtk.CssProvider()
         provider.load_from_file(Gio.File.new_for_path(os.path.join(self.my_path, 'assets/linmotube.css')))
@@ -185,33 +189,36 @@ class LinMoTube(Gtk.Window):
                 vidthumb = vid['thumbnails'][0]['url']
 
                 vidurl = urlparse(vidthumb)
-                thumbname = os.path.basename(vidurl.path)
+                thumbname = vid['id']
+                
+                if os.path.exists(os.path.join(self.cache_path, thumbname)) == False:
+                    content = requests.get(vidthumb).content
 
-                content = requests.get(vidthumb).content
+                    file = open(os.path.join(self.cache_path, thumbname), "wb")
+                    file.write(content)
+                    file.close()
 
-                file = open("/tmp/" + thumbname, "wb")
-                file.write(content)
-                file.close()
-
-                im = Image.open("/tmp/" + thumbname).convert("RGB")
-                im.save("/tmp/" + thumbname, "jpeg")
+                    im = Image.open(os.path.join(self.cache_path, thumbname)).convert("RGB")
+                    im.save(os.path.join(self.cache_path, thumbname), "jpeg")
 
             if self.mode == "M":
                 channelthumb = vid['thumbnails'][0]['url']
+                channelurl = urlparse(channelthumb)
+                channelthumbname = vid['id']
             else:
                 channelthumb = vid['channel']['thumbnails'][0]['url']
+                channelurl = urlparse(channelthumb)
+                channelthumbname = os.path.basename(channelurl.path)
 
-            channelurl = urlparse(channelthumb)
-            channelthumbname = os.path.basename(channelurl.path)
+            if os.path.exists(os.path.join(self.cache_path, channelthumbname)) == False:
+                channelcontent = requests.get(channelthumb).content
 
-            channelcontent = requests.get(channelthumb).content
+                file = open(os.path.join(self.cache_path, channelthumbname), "wb")
+                file.write(channelcontent)
+                file.close()
 
-            file = open("/tmp/" + channelthumbname, "wb")
-            file.write(channelcontent)
-            file.close()
-
-            im = Image.open("/tmp/" + channelthumbname).convert("RGB")
-            im.save("/tmp/" + channelthumbname, "jpeg")
+                im = Image.open(os.path.join(self.cache_path, channelthumbname)).convert("RGB")
+                im.save(os.path.join(self.cache_path, channelthumbname), "jpeg")
 
             GLib.idle_add(self.DoAddVideo, vid['id'], vid['title'], thumbname, channelthumbname, vid['channel']['name'], vid['viewCount']['short'])
 
@@ -235,7 +242,7 @@ class LinMoTube(Gtk.Window):
 
         if self.mode == "V":
             thumbpb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-                filename=os.path.join('/tmp/' + thumbname),
+                filename=os.path.join(self.cache_path, thumbname),
                 width=300,
                 height=200,
                 preserve_aspect_ratio=True)
@@ -251,7 +258,7 @@ class LinMoTube(Gtk.Window):
         vidcard.pack_start(vidmeta, False, False, 0)
         
         channelpb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-            filename=os.path.join('/tmp/' + channelthumbname),
+            filename=os.path.join(self.cache_path, channelthumbname),
             width=68,
             height=68,
             preserve_aspect_ratio=False)
