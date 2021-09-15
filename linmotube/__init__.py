@@ -119,6 +119,14 @@ class LinMoTube(Gtk.Window):
         self.currentlabel.set_max_width_chars(68)
         playback.pack_start(self.currentlabel, True, True, 0)
 
+        self.loadinglabel = Gtk.Label()
+        self.loadinglabel.set_markup("<big><b>loading media...</b></big>");
+        self.loadinglabel.set_justify(Gtk.Justification.FILL)
+        self.loadinglabel.set_line_wrap(True)
+        self.loadinglabel.set_max_width_chars(68)
+        self.loadinglabel.get_style_context().add_class('app-theme')
+        container.pack_end(self.loadinglabel, False, False, 0)
+
         self.show_all()
         self.stopbtn.hide()
 
@@ -161,6 +169,8 @@ class LinMoTube(Gtk.Window):
 
         if clear:
             GLib.idle_add(self.DoClearVideoList)
+
+        GLib.idle_add(self.DoShowLoading)
 
         if clear:
             self.videosSearch = VideosSearch(self.criteria, limit=10)
@@ -205,11 +215,19 @@ class LinMoTube(Gtk.Window):
 
             GLib.idle_add(self.DoAddVideo, vid['id'], vid['title'], thumbname, channelthumbname, vid['channel']['name'], vid['viewCount']['short'])
 
+        GLib.idle_add(self.DoHideLoading)
+
     def DoClearVideoList(self):
         videos = self.videolist.get_children()
         for video in videos:
             if video is not None:
                 self.videolist.remove(video)
+
+    def DoShowLoading(self):
+        self.loadinglabel.show()
+
+    def DoHideLoading(self):
+        self.loadinglabel.hide()
 
     def DoAddVideo(self, id, title, thumbname, channelthumbname, channelname, viewcount):
         vidcard = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
