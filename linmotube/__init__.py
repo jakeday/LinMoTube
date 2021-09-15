@@ -134,6 +134,7 @@ class LinMoTube(Gtk.Window):
         container.pack_end(self.loadinglabel, False, False, 0)
 
         self.show_all()
+        self.modebtn.grab_focus()
         self.controls.hide()
 
         self.GetOriginalIdleTime()
