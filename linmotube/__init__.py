@@ -134,7 +134,7 @@ class LinMoTube(Gtk.Window):
         container.pack_end(self.loadinglabel, False, False, 0)
 
         self.show_all()
-        self.stopbtn.hide()
+        self.controls.hide()
 
         self.GetOriginalIdleTime()
 
@@ -296,17 +296,17 @@ class LinMoTube(Gtk.Window):
         if self.watch is not None:
             poll = self.watch.poll()
             if poll is None:
-                self.stopbtn.show()
+                self.controls.show()
             else:
-                self.stopbtn.hide()
+                self.controls.hide()
                 self.currentlabel.set_text("no media selected")
         else:
-            self.stopbtn.hide()
+            self.controls.hide()
             self.currentlabel.set_text("no media selected")
 
     def OnPlayVideo(self, button, uri, id, title):
         self.currentlabel.set_text(title)
-        self.stopbtn.show()
+        self.controls.show()
         
         self.swidth = self.get_size().width
         self.sheight = self.get_size().height
@@ -369,7 +369,7 @@ class LinMoTube(Gtk.Window):
                 self.watch.terminate()
 
         self.currentlabel.set_text("no media selected")
-        self.stopbtn.hide()
+        self.controls.hide()
 
         sbparams = ['gsettings', 'set', 'org.gnome.desktop.session', 'idle-delay', self.idleTime]
         sbproc = subprocess.Popen(sbparams, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
