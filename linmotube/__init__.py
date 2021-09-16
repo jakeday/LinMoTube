@@ -24,9 +24,23 @@ class LinMoTube(Gtk.Window):
     def draw(self):
         self.my_path = os.path.abspath(os.path.dirname(__file__))
         self.cache_path = os.path.expanduser("~/.cache/linmotube/")
+        self.config_path = os.path.expanduser("~/.config/linmotube/")
+        self.library_file = os.path.expanduser("~/.config/linmotube/library.json")
 
         if os.path.exists(self.cache_path) == False:
             os.mkdir(self.cache_path)
+
+        if os.path.exists(self.config_path) == False:
+            os.mkdir(self.config_path)
+
+        if os.path.exists(self.library_file):
+            with open(self.library_file, "r") as jsonfile:
+                self.librarydata = json.load(jsonfile)
+                jsonfile.close()
+        else:
+            self.librarydata = []
+
+        print(self.librarydata)
 
         provider = Gtk.CssProvider()
         provider.load_from_file(Gio.File.new_for_path(os.path.join(self.my_path, 'assets/linmotube.css')))
@@ -87,6 +101,18 @@ class LinMoTube(Gtk.Window):
         self.modebtn.get_style_context().add_class('app-theme')
         searchbox.pack_start(self.modebtn, False, False, 0)
 
+        librarypb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+            filename=os.path.join(self.my_path, 'assets/library.png'),
+            width=24, 
+            height=24, 
+            preserve_aspect_ratio=True)
+        libraryimg = Gtk.Image.new_from_pixbuf(librarypb)
+        librarybtn = Gtk.Button()
+        librarybtn.connect("clicked", self.OnLoadLibrary)
+        librarybtn.add(libraryimg)
+        librarybtn.get_style_context().add_class('app-theme')
+        searchbox.pack_start(librarybtn, False, False, 0)
+
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scrolled.connect("edge-reached", self.DoSearchMore, 70)
@@ -132,6 +158,18 @@ class LinMoTube(Gtk.Window):
         self.loadinglabel.set_max_width_chars(68)
         self.loadinglabel.get_style_context().add_class('app-theme')
         container.pack_end(self.loadinglabel, False, False, 0)
+
+        self.downloadpb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+            filename=os.path.join(self.my_path, 'assets/download.png'),
+            width=24, 
+            height=24, 
+            preserve_aspect_ratio=True)
+
+        self.savedpb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+            filename=os.path.join(self.my_path, 'assets/saved.png'),
+            width=24, 
+            height=24, 
+            preserve_aspect_ratio=True)
 
         self.show_all()
         self.modebtn.grab_focus()
@@ -185,14 +223,13 @@ class LinMoTube(Gtk.Window):
             self.videosSearch.next()
         results = self.videosSearch.result()['result']
 
-        for vid in results :
-            thumbname = ""
+        for vid in results:
+            thumbname = vid['id']
 
             if self.mode == "V":
                 vidthumb = vid['thumbnails'][0]['url']
 
                 vidurl = urlparse(vidthumb)
-                thumbname = vid['id']
                 
                 if os.path.exists(os.path.join(self.cache_path, thumbname)) == False:
                     content = requests.get(vidthumb).content
@@ -271,6 +308,9 @@ class LinMoTube(Gtk.Window):
         vidinfo = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         vidmeta.pack_start(vidinfo, False, False, 0)
 
+        vidheader = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        vidinfo.pack_start(vidheader, False, False, 0)
+
         titlelabel = Gtk.Label()
         titlelabel.set_markup("<a href=''><big><b>" + title.replace("&", "&amp;") + "</b></big></a>")
         titlelabel.connect("activate-link", self.OnPlayVideo, id, title)
@@ -278,7 +318,27 @@ class LinMoTube(Gtk.Window):
         titlelabel.set_line_wrap(True)
         titlelabel.set_max_width_chars(68)
         titlelabel.get_style_context().add_class('app-theme')
-        vidinfo.pack_start(titlelabel, False, False, 0)
+        vidheader.pack_start(titlelabel, True, True, 0)
+
+        downloadbtn = Gtk.Button()
+
+        if self.mode == "V":
+            if os.path.exists(os.path.join(self.cache_path, id + ".mp4")):
+                downloadimg = Gtk.Image.new_from_pixbuf(self.savedpb)
+            else:
+                downloadimg = Gtk.Image.new_from_pixbuf(self.downloadpb)
+                downloadbtn.connect("clicked", self.OnDownloadVideo, id, title, thumbname)
+        else:
+            if os.path.exists(os.path.join(self.cache_path, id + ".mp3")):
+                downloadimg = Gtk.Image.new_from_pixbuf(self.savedpb)
+            else:
+                downloadimg = Gtk.Image.new_from_pixbuf(self.downloadpb)
+                downloadbtn.connect("clicked", self.OnDownloadVideo, id, title, thumbname)
+
+        downloadbtn.add(downloadimg)
+        downloadbtn.get_style_context().add_class('app-theme')
+        downloadbtn.get_style_context().add_class('no-border')
+        vidheader.pack_end(downloadbtn, False, False, 0)
 
         viddets = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         vidinfo.pack_start(viddets, False, False, 0)
@@ -305,6 +365,47 @@ class LinMoTube(Gtk.Window):
             self.controls.hide()
             self.currentlabel.set_text("no media selected")
 
+    def OnLoadLibrary(self, button):
+        self.DoClearVideoList()
+
+        for vid in self.librarydata:
+            vidcard = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+            self.videolist.add(vidcard)
+
+            vidmeta = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+            vidcard.pack_start(vidmeta, False, False, 0)
+            
+            thumbpb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+                filename=os.path.join(self.cache_path, vid['thumb']),
+                width=68,
+                height=68,
+                preserve_aspect_ratio=False)
+            thumbimg = Gtk.Image.new_from_pixbuf(thumbpb)
+            vidmeta.pack_start(thumbimg, False, False, 0)
+
+            titlelabel = Gtk.Label()
+            titlelabel.set_markup("<a href=''><big><b>" + vid['title'].replace("&", "&amp;") + "</b></big></a>")
+            titlelabel.connect("activate-link", self.OnPlayVideo, vid['id'], vid['title'])
+            titlelabel.set_justify(Gtk.Justification.FILL)
+            titlelabel.set_line_wrap(True)
+            titlelabel.set_max_width_chars(68)
+            titlelabel.get_style_context().add_class('app-theme')
+            vidmeta.pack_start(titlelabel, True, True, 0)
+
+            self.show_all()
+            self.DoHideLoading()
+
+            if self.watch is not None:
+                poll = self.watch.poll()
+                if poll is None:
+                    self.controls.show()
+                else:
+                    self.controls.hide()
+                    self.currentlabel.set_text("no media selected")
+            else:
+                self.controls.hide()
+                self.currentlabel.set_text("no media selected")
+
     def OnPlayVideo(self, button, uri, id, title):
         self.currentlabel.set_text(title)
         self.controls.show()
@@ -328,33 +429,59 @@ class LinMoTube(Gtk.Window):
         vidurl = 'https://www.youtube.com/watch?v=' + id
 
         if self.mode == "V":
-            if lpmode == "landscape":
+            if os.path.exists(os.path.join(self.cache_path, id + ".mp4")):
+                if lpmode == "landscape":
+                    playerparams = [
+                        'mpv',
+                        '--fullscreen',
+                        '--player-operation-mode=pseudo-gui',
+                        os.path.join(self.cache_path, id + ".mp4")
+                    ]
+                else:
+                    playerparams = [
+                        'mpv',
+                        '--autofit=100%x100%',
+                        '--player-operation-mode=pseudo-gui',
+                        os.path.join(self.cache_path, id + ".mp4")
+                    ]
+            else:
+                if lpmode == "landscape":
+                    playerparams = [
+                        'mpv',
+                        '--fullscreen',
+                        '--player-operation-mode=pseudo-gui',
+                        '--ytdl-format="(bestvideo[height<=720]+bestaudio)"',
+                        '--stream-buffer-size=5MiB',
+                        '--demuxer-max-bytes=1024KiB',
+                        '--',
+                        vidurl
+                    ]
+                else:
+                    playerparams = [
+                        'mpv',
+                        '--autofit=100%x100%',
+                        '--player-operation-mode=pseudo-gui',
+                        '--stream-buffer-size=5MiB',
+                        '--demuxer-max-bytes=1024KiB',
+                        '--',
+                        vidurl
+                    ]
+        else:
+            if os.path.exists(os.path.join(self.cache_path, id + ".mp3")):
                 playerparams = [
                     'mpv',
-                    '--fullscreen',
-                    '--player-operation-mode=pseudo-gui',
-                    '--ytdl-format="(bestvideo[height<=720]+bestaudio)"',
-                    '--stream-buffer-size=5MiB',
-                    '--demuxer-max-bytes=1024KiB',
-                    '--',
-                    vidurl]
+                    '--no-video',
+                    os.path.join(self.cache_path, id + ".mp3")
+                ]
             else:
                 playerparams = [
                     'mpv',
-                    '--autofit=100%x100%',
-                    '--player-operation-mode=pseudo-gui',
+                    '--no-video',
                     '--stream-buffer-size=5MiB',
                     '--demuxer-max-bytes=1024KiB',
                     '--',
-                    vidurl]
-        else:
-            playerparams = [
-                'mpv',
-                '--no-video',
-                '--stream-buffer-size=5MiB',
-                '--demuxer-max-bytes=1024KiB',
-                '--',
-                vidurl]
+                    vidurl
+                ]
 
         self.watch = subprocess.Popen(playerparams, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
 
@@ -374,7 +501,46 @@ class LinMoTube(Gtk.Window):
 
         sbparams = ['gsettings', 'set', 'org.gnome.desktop.session', 'idle-delay', self.idleTime]
         sbproc = subprocess.Popen(sbparams, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
+
+    def OnDownloadVideo(self, button, id, title, thumb):
+        button.get_child().set_from_pixbuf(self.savedpb)
         
+        x = threading.Thread(target=self.DoDownloadVideo, args=(id, title, thumb))
+        x.start()
+
+    def DoDownloadVideo(self, id, title, thumb):
+        vidurl = 'https://www.youtube.com/watch?v=' + id
+
+        if self.mode == "M":
+            downloadparams = [
+                'youtube-dl',
+                '--extract-audio',
+                '--audio-format', 'mp3',
+                '-o', os.path.join(self.cache_path, id + ".mp3"),
+                vidurl
+            ]
+        else:
+            downloadparams = [
+                'youtube-dl',
+                '--recode-video', 'mp4',
+                '-o', os.path.join(self.cache_path, id + ".mp4"),
+                vidurl
+            ]
+        download = subprocess.Popen(downloadparams, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
+
+        videodata = {
+            'id' : id,
+            'title' : title,
+            'type' : self.mode,
+            'thumb' : thumb
+        }
+
+        self.librarydata.append(videodata)
+
+        with open(self.library_file, "w") as jsonfile:
+            json.dump(self.librarydata, jsonfile)
+            jsonfile.close()
+
 app = LinMoTube()
 app.connect("destroy", Gtk.main_quit)
 app.draw()
