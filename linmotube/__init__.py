@@ -56,6 +56,14 @@ class LinMoTube(Gtk.Window):
         header.get_style_context().add_class('app-theme')
         header.props.show_close_button = True
 
+        logopb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+            filename=os.path.join(self.my_path, 'assets/linmotube.png'),
+            width=30, 
+            height=30, 
+            preserve_aspect_ratio=True)
+        logoimg = Gtk.Image.new_from_pixbuf(logopb)
+        header.pack_start(logoimg)
+
         self.set_titlebar(header)
 
         container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
@@ -64,13 +72,17 @@ class LinMoTube(Gtk.Window):
         searchbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         container.add(searchbox)
 
-        logopb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-            filename=os.path.join(self.my_path, 'assets/linmotube.png'),
-            width=30, 
-            height=30, 
+        librarypb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+                filename=os.path.join(self.my_path, 'assets/library.png'),
+            width=24, 
+            height=24, 
             preserve_aspect_ratio=True)
-        logoimg = Gtk.Image.new_from_pixbuf(logopb)
-        searchbox.pack_start(logoimg, False, False, 0)
+        libraryimg = Gtk.Image.new_from_pixbuf(librarypb)
+        librarybtn = Gtk.Button()
+        librarybtn.connect("clicked", self.OnLoadLibrary)
+        librarybtn.add(libraryimg)
+        librarybtn.get_style_context().add_class('app-theme')
+        searchbox.pack_start(librarybtn, False, False, 0)
 
         self.searchentry = Gtk.SearchEntry()
         self.searchentry.set_text("")
@@ -100,18 +112,6 @@ class LinMoTube(Gtk.Window):
         self.modebtn.add(self.videoimg)
         self.modebtn.get_style_context().add_class('app-theme')
         searchbox.pack_start(self.modebtn, False, False, 0)
-
-        librarypb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-            filename=os.path.join(self.my_path, 'assets/library.png'),
-            width=24, 
-            height=24, 
-            preserve_aspect_ratio=True)
-        libraryimg = Gtk.Image.new_from_pixbuf(librarypb)
-        librarybtn = Gtk.Button()
-        librarybtn.connect("clicked", self.OnLoadLibrary)
-        librarybtn.add(libraryimg)
-        librarybtn.get_style_context().add_class('app-theme')
-        searchbox.pack_start(librarybtn, False, False, 0)
 
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
@@ -311,15 +311,6 @@ class LinMoTube(Gtk.Window):
         vidheader = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         vidinfo.pack_start(vidheader, False, False, 0)
 
-        titlelabel = Gtk.Label()
-        titlelabel.set_markup("<a href=''><big><b>" + title.replace("&", "&amp;") + "</b></big></a>")
-        titlelabel.connect("activate-link", self.OnPlayVideo, id, title)
-        titlelabel.set_justify(Gtk.Justification.FILL)
-        titlelabel.set_line_wrap(True)
-        titlelabel.set_max_width_chars(68)
-        titlelabel.get_style_context().add_class('app-theme')
-        vidheader.pack_start(titlelabel, True, True, 0)
-
         downloadbtn = Gtk.Button()
 
         if self.mode == "V":
@@ -339,6 +330,15 @@ class LinMoTube(Gtk.Window):
         downloadbtn.get_style_context().add_class('app-theme')
         downloadbtn.get_style_context().add_class('no-border')
         vidheader.pack_end(downloadbtn, False, False, 0)
+
+        titlelabel = Gtk.Label()
+        titlelabel.set_markup("<a href=''><big><b>" + title.replace("&", "&amp;") + "</b></big></a>")
+        titlelabel.connect("activate-link", self.OnPlayVideo, id, title)
+        titlelabel.set_justify(Gtk.Justification.FILL)
+        titlelabel.set_line_wrap(True)
+        titlelabel.set_max_width_chars(68)
+        titlelabel.get_style_context().add_class('app-theme')
+        vidheader.pack_start(titlelabel, True, True, 0)
 
         viddets = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         vidinfo.pack_start(viddets, False, False, 0)
