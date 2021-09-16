@@ -51,6 +51,7 @@ class LinMoTube(Gtk.Window):
         self.mode = "V"
         self.criteria = None
         self.watch = None
+        self.library = False
 
         header = Gtk.HeaderBar(title="LinMoTube")
         header.get_style_context().add_class('app-theme')
@@ -187,6 +188,8 @@ class LinMoTube(Gtk.Window):
         self.idleTime = out.decode('UTF-8').replace("uint32", "").strip()
 
     def OnToggleMode(self, button):
+        self.library = False
+
         if self.mode == "V":
             self.mode = "M"
             self.modebtn.get_child().set_from_pixbuf(self.musicpb)
@@ -203,11 +206,13 @@ class LinMoTube(Gtk.Window):
 
     def DoSearchMore(self, swin, pos, dist):
         if pos == Gtk.PositionType.BOTTOM:
-            x = threading.Thread(target=self.DoSearch, args=(self.criteria, False))
-            x.start()
+            if self.library == False:
+                x = threading.Thread(target=self.DoSearch, args=(self.criteria, False))
+                x.start()
 
     def DoSearch(self, criteria, clear):
         self.criteria = criteria
+        self.library = False
 
         if self.criteria == None:
             self.criteria = "linux mobile"
@@ -367,6 +372,8 @@ class LinMoTube(Gtk.Window):
 
     def OnLoadLibrary(self, button):
         self.DoClearVideoList()
+
+        self.library = True
 
         for vid in self.librarydata:
             vidcard = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
@@ -535,7 +542,12 @@ class LinMoTube(Gtk.Window):
             'thumb' : thumb
         }
 
-        self.librarydata.append(videodata)
+        vids = []
+        for vid in self.librarydata:
+            vids.append(vid['id'])
+
+        if id not in vids:
+            self.librarydata.append(videodata)
 
         with open(self.library_file, "w") as jsonfile:
             json.dump(self.librarydata, jsonfile)
