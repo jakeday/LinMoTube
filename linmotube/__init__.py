@@ -40,8 +40,6 @@ class LinMoTube(Gtk.Window):
         else:
             self.librarydata = []
 
-        print(self.librarydata)
-
         provider = Gtk.CssProvider()
         provider.load_from_file(Gio.File.new_for_path(os.path.join(self.my_path, 'assets/linmotube.css')))
         Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
@@ -74,7 +72,7 @@ class LinMoTube(Gtk.Window):
         container.add(searchbox)
 
         librarypb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-                filename=os.path.join(self.my_path, 'assets/library.png'),
+            filename=os.path.join(self.my_path, 'assets/library.png'),
             width=24, 
             height=24, 
             preserve_aspect_ratio=True)
@@ -168,6 +166,12 @@ class LinMoTube(Gtk.Window):
 
         self.savedpb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
             filename=os.path.join(self.my_path, 'assets/saved.png'),
+            width=24, 
+            height=24, 
+            preserve_aspect_ratio=True)
+
+        self.removepb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+            filename=os.path.join(self.my_path, 'assets/remove.png'),
             width=24, 
             height=24, 
             preserve_aspect_ratio=True)
@@ -294,7 +298,7 @@ class LinMoTube(Gtk.Window):
             thumbimg = Gtk.Image.new_from_pixbuf(thumbpb)
             vidbtn = Gtk.Button()
             vidbtn.add(thumbimg)
-            vidbtn.connect("clicked", self.OnPlayVideo, None, id, title)
+            vidbtn.connect("clicked", self.OnPlayVideo, None, id, title, self.mode)
             vidbtn.get_style_context().add_class('app-theme')
             vidbtn.get_style_context().add_class('no-border')
             vidcard.pack_start(vidbtn, True, True, 0)
@@ -338,7 +342,7 @@ class LinMoTube(Gtk.Window):
 
         titlelabel = Gtk.Label()
         titlelabel.set_markup("<a href=''><big><b>" + title.replace("&", "&amp;") + "</b></big></a>")
-        titlelabel.connect("activate-link", self.OnPlayVideo, id, title)
+        titlelabel.connect("activate-link", self.OnPlayVideo, id, title, self.mode)
         titlelabel.set_justify(Gtk.Justification.FILL)
         titlelabel.set_line_wrap(True)
         titlelabel.set_max_width_chars(68)
@@ -392,28 +396,36 @@ class LinMoTube(Gtk.Window):
 
             titlelabel = Gtk.Label()
             titlelabel.set_markup("<a href=''><big><b>" + vid['title'].replace("&", "&amp;") + "</b></big></a>")
-            titlelabel.connect("activate-link", self.OnPlayVideo, vid['id'], vid['title'])
+            titlelabel.connect("activate-link", self.OnPlayVideo, vid['id'], vid['title'], vid['type'])
             titlelabel.set_justify(Gtk.Justification.FILL)
             titlelabel.set_line_wrap(True)
             titlelabel.set_max_width_chars(68)
             titlelabel.get_style_context().add_class('app-theme')
             vidmeta.pack_start(titlelabel, True, True, 0)
 
-            self.show_all()
-            self.DoHideLoading()
+            removeimg = Gtk.Image.new_from_pixbuf(self.removepb)
+            removebtn = Gtk.Button()
+            removebtn.add(removeimg)
+            removebtn.connect("clicked", self.OnRemoveVideo, vid['id'])
+            removebtn.get_style_context().add_class('app-theme')
+            removebtn.get_style_context().add_class('no-border')
+            vidmeta.pack_end(removebtn, False, False, 0)
 
-            if self.watch is not None:
-                poll = self.watch.poll()
-                if poll is None:
-                    self.controls.show()
-                else:
-                    self.controls.hide()
-                    self.currentlabel.set_text("no media selected")
+        self.show_all()
+        self.DoHideLoading()
+
+        if self.watch is not None:
+            poll = self.watch.poll()
+            if poll is None:
+                self.controls.show()
             else:
                 self.controls.hide()
                 self.currentlabel.set_text("no media selected")
+        else:
+            self.controls.hide()
+            self.currentlabel.set_text("no media selected")
 
-    def OnPlayVideo(self, button, uri, id, title):
+    def OnPlayVideo(self, button, uri, id, title, type):
         self.currentlabel.set_text(title)
         self.controls.show()
         
@@ -424,10 +436,10 @@ class LinMoTube(Gtk.Window):
         if self.swidth >= self.sheight:
             lpmode = "landscape"
         
-        x = threading.Thread(target=self.DoPlayVideo, args=(button, uri, id, lpmode))
+        x = threading.Thread(target=self.DoPlayVideo, args=(button, uri, id, type, lpmode))
         x.start()
 
-    def DoPlayVideo(self, button, uri, id, lpmode):
+    def DoPlayVideo(self, button, uri, id, type, lpmode):
         if self.watch is not None:
             poll = self.watch.poll()
             if poll is None:
@@ -435,7 +447,7 @@ class LinMoTube(Gtk.Window):
 
         vidurl = 'https://www.youtube.com/watch?v=' + id
 
-        if self.mode == "V":
+        if type == "V":
             if os.path.exists(os.path.join(self.cache_path, id + ".mp4")):
                 if lpmode == "landscape":
                     playerparams = [
@@ -552,6 +564,21 @@ class LinMoTube(Gtk.Window):
         with open(self.library_file, "w") as jsonfile:
             json.dump(self.librarydata, jsonfile)
             jsonfile.close()
+
+    def OnRemoveVideo(self, button, id):
+        newdata = []
+        for vid in self.librarydata:
+            if (vid['id'] != id):
+                newdata.append(vid)
+
+        self.librarydata = newdata
+
+        with open(self.library_file, "w") as jsonfile:
+            json.dump(self.librarydata, jsonfile)
+            jsonfile.close()
+
+        self.OnLoadLibrary(button)
+        
 
 app = LinMoTube()
 app.connect("destroy", Gtk.main_quit)
