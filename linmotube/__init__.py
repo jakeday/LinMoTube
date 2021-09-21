@@ -312,13 +312,31 @@ class LinMoTube(Gtk.Window):
             height=68,
             preserve_aspect_ratio=False)
         channelimg = Gtk.Image.new_from_pixbuf(channelpb)
-        vidmeta.pack_start(channelimg, False, False, 0)
+
+        if self.mode == "M":
+            vidbtn = Gtk.Button()
+            vidbtn.add(channelimg)
+            vidbtn.connect("clicked", self.OnPlayVideo, None, id, title, self.mode)
+            vidbtn.get_style_context().add_class('app-theme')
+            vidbtn.get_style_context().add_class('no-border')
+            vidmeta.pack_start(vidbtn, False, False, 0)
+        else:
+            vidmeta.pack_start(channelimg, False, False, 0)
 
         vidinfo = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         vidmeta.pack_start(vidinfo, False, False, 0)
 
         vidheader = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         vidinfo.pack_start(vidheader, False, False, 0)
+
+        titlelabel = Gtk.Label()
+        titlelabel.set_markup("<a href=''><big><b>" + title.replace("&", "&amp;") + "</b></big></a>")
+        titlelabel.connect("activate-link", self.OnPlayVideo, id, title, self.mode)
+        titlelabel.set_justify(Gtk.Justification.FILL)
+        titlelabel.set_line_wrap(True)
+        titlelabel.set_max_width_chars(68)
+        titlelabel.get_style_context().add_class('app-theme')
+        vidheader.pack_start(titlelabel, True, True, 0)
 
         downloadbtn = Gtk.Button()
 
@@ -339,15 +357,6 @@ class LinMoTube(Gtk.Window):
         downloadbtn.get_style_context().add_class('app-theme')
         downloadbtn.get_style_context().add_class('no-border')
         vidheader.pack_end(downloadbtn, False, False, 0)
-
-        titlelabel = Gtk.Label()
-        titlelabel.set_markup("<a href=''><big><b>" + title.replace("&", "&amp;") + "</b></big></a>")
-        titlelabel.connect("activate-link", self.OnPlayVideo, id, title, self.mode)
-        titlelabel.set_justify(Gtk.Justification.FILL)
-        titlelabel.set_line_wrap(True)
-        titlelabel.set_max_width_chars(68)
-        titlelabel.get_style_context().add_class('app-theme')
-        vidheader.pack_start(titlelabel, True, True, 0)
 
         viddets = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         vidinfo.pack_start(viddets, False, False, 0)
@@ -392,7 +401,12 @@ class LinMoTube(Gtk.Window):
                 height=68,
                 preserve_aspect_ratio=False)
             thumbimg = Gtk.Image.new_from_pixbuf(thumbpb)
-            vidmeta.pack_start(thumbimg, False, False, 0)
+            vidbtn = Gtk.Button()
+            vidbtn.add(thumbimg)
+            vidbtn.connect("clicked", self.OnPlayVideo, None, vid['id'], vid['title'], vid['type'])
+            vidbtn.get_style_context().add_class('app-theme')
+            vidbtn.get_style_context().add_class('no-border')
+            vidmeta.pack_start(vidbtn, False, False, 0)
 
             titlelabel = Gtk.Label()
             titlelabel.set_markup("<a href=''><big><b>" + vid['title'].replace("&", "&amp;") + "</b></big></a>")
