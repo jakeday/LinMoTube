@@ -12,7 +12,8 @@ setuptools.setup(
     url='https://github.com/jakeday/LinMoTube',
     python_requires='>=3.8',
     install_requires=[
-        'youtube-search-python'
+        'youtube-search-python',
+        'python-mpv'
     ],
     include_package_data=True,
     data_files=[

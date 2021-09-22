@@ -5,13 +5,18 @@
 # Basic GUI for YouTube on Linux Mobile
 #----------------------------------------------------------------------
 
-import os, requests, io, sys, subprocess, gi, json, threading
+import ctypes, os, requests, io, sys, subprocess, gi, json, threading
 from urllib.parse import urlparse
 from youtubesearchpython import *
 from PIL import Image
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk, GdkPixbuf, Gio, GLib
+
+gi.require_version('GL', '1.0')
+from OpenGL import GL, GLX
+
+from mpv import MPV, MpvRenderContext, OpenGlCbGetProcAddrFn
 
 class LinMoTube(Gtk.Window):
     def __init__(self):
@@ -47,8 +52,8 @@ class LinMoTube(Gtk.Window):
         self.get_style_context().add_class('app-theme')
 
         self.mode = "V"
+        self.playing = False
         self.criteria = None
-        self.watch = None
         self.library = False
 
         header = Gtk.HeaderBar(title="LinMoTube")
@@ -184,6 +189,8 @@ class LinMoTube(Gtk.Window):
 
         x = threading.Thread(target=self.DoSearch, args=(None, True))
         x.start()
+
+        self.player = MediaPlayer()
 
     def GetOriginalIdleTime(self):
         sbprocess = subprocess.Popen(['gsettings', 'get', 'org.gnome.desktop.session', 'idle-delay'], stdout=subprocess.PIPE)
@@ -372,13 +379,8 @@ class LinMoTube(Gtk.Window):
             viddets.pack_end(viewslabel, False, False, 0)
 
         self.show_all()
-        if self.watch is not None:
-            poll = self.watch.poll()
-            if poll is None:
-                self.controls.show()
-            else:
-                self.controls.hide()
-                self.currentlabel.set_text("no media selected")
+        if self.playing:
+            self.controls.show()
         else:
             self.controls.hide()
             self.currentlabel.set_text("no media selected")
@@ -428,13 +430,8 @@ class LinMoTube(Gtk.Window):
         self.show_all()
         self.DoHideLoading()
 
-        if self.watch is not None:
-            poll = self.watch.poll()
-            if poll is None:
-                self.controls.show()
-            else:
-                self.controls.hide()
-                self.currentlabel.set_text("no media selected")
+        if self.playing:
+            self.controls.show()
         else:
             self.controls.hide()
             self.currentlabel.set_text("no media selected")
@@ -454,69 +451,22 @@ class LinMoTube(Gtk.Window):
         x.start()
 
     def DoPlayVideo(self, button, uri, id, type, lpmode):
-        if self.watch is not None:
-            poll = self.watch.poll()
-            if poll is None:
-                self.watch.terminate()
-
         vidurl = 'https://www.youtube.com/watch?v=' + id
+
+        self.player.mode(type)
 
         if type == "V":
             if os.path.exists(os.path.join(self.cache_path, id + ".mp4")):
-                if lpmode == "landscape":
-                    playerparams = [
-                        'mpv',
-                        '--fullscreen',
-                        '--player-operation-mode=pseudo-gui',
-                        os.path.join(self.cache_path, id + ".mp4")
-                    ]
-                else:
-                    playerparams = [
-                        'mpv',
-                        '--autofit=100%x100%',
-                        '--player-operation-mode=pseudo-gui',
-                        os.path.join(self.cache_path, id + ".mp4")
-                    ]
+                self.player.play(os.path.join(self.cache_path, id + ".mp4"))
             else:
-                if lpmode == "landscape":
-                    playerparams = [
-                        'mpv',
-                        '--fullscreen',
-                        '--player-operation-mode=pseudo-gui',
-                        '--ytdl-format="(bestvideo[height<=720]+bestaudio)"',
-                        '--stream-buffer-size=5MiB',
-                        '--demuxer-max-bytes=1024KiB',
-                        '--',
-                        vidurl
-                    ]
-                else:
-                    playerparams = [
-                        'mpv',
-                        '--autofit=100%x100%',
-                        '--player-operation-mode=pseudo-gui',
-                        '--stream-buffer-size=5MiB',
-                        '--demuxer-max-bytes=1024KiB',
-                        '--',
-                        vidurl
-                    ]
+                self.player.play(vidurl)
         else:
             if os.path.exists(os.path.join(self.cache_path, id + ".mp3")):
-                playerparams = [
-                    'mpv',
-                    '--no-video',
-                    os.path.join(self.cache_path, id + ".mp3")
-                ]
+                self.player.play(os.path.join(self.cache_path, id + ".mp3"))
             else:
-                playerparams = [
-                    'mpv',
-                    '--no-video',
-                    '--stream-buffer-size=5MiB',
-                    '--demuxer-max-bytes=1024KiB',
-                    '--',
-                    vidurl
-                ]
+                self.player.play(vidurl)
 
-        self.watch = subprocess.Popen(playerparams, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
+        self.playing = True
 
         sbparams = ['gsettings', 'set', 'org.gnome.desktop.session', 'idle-delay', '0']
         sbproc = subprocess.Popen(sbparams, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
@@ -524,10 +474,8 @@ class LinMoTube(Gtk.Window):
         return True
 
     def OnStopVideo(self, evt):
-        if self.watch is not None:
-            poll = self.watch.poll()
-            if poll is None:
-                self.watch.terminate()
+        self.player.stop()
+        self.playing = False
 
         self.currentlabel.set_text("no media selected")
         self.controls.hide()
@@ -593,6 +541,77 @@ class LinMoTube(Gtk.Window):
 
         self.OnLoadLibrary(button)
         
+class MediaPlayer(Gtk.GLArea):
+    def __init__(self, **properties):
+        super().__init__(**properties)
+
+        self._proc_addr_wrapper = OpenGlCbGetProcAddrFn(get_process_address)
+
+        self.ctx = None
+        self.mode("V")
+
+        self.connect("realize", self.DoRealize)
+        self.connect("render", self.DoRender)
+        self.connect("unrealize", self.DoUnrealize)
+
+    def DoRealize(self, area):
+        self.make_current()
+        self.ctx = MpvRenderContext(self.mpv, 'opengl', opengl_init_params={'get_proc_address': self._proc_addr_wrapper})
+        self.ctx.update_cb = self.wrapped_c_render_func
+
+    def DoUnrealize(self, arg):
+        self.ctx.free()
+        self.vidmpv.terminate()
+        self.audmpv.terminate()
+
+    def wrapped_c_render_func(self):
+        GLib.idle_add(self.call_frame_ready, None, GLib.PRIORITY_HIGH)
+
+    def call_frame_ready(self, *args):
+        if self.ctx.update():
+            self.queue_render()
+
+    def DoRender(self, arg1, arg2):
+        if self.ctx:
+            factor = self.get_scale_factor()
+            rect = self.get_allocated_size()[0]
+
+            width = rect.width * factor
+            height = rect.height * factor
+
+            fbo = GL.glGetIntegerv(GL.GL_DRAW_FRAMEBUFFER_BINDING)
+            self.ctx.render(flip_y=True, opengl_fbo={'w': width, 'h': height, 'fbo': fbo})
+            return True
+        return False
+
+    def mode(self, mode):
+        if mode == "V":
+            self.mpv = MPV(input_default_bindings=True, input_vo_keyboard=True, osc=True)
+            self.mpv.fullscreen = True
+        else:
+            self.mpv = MPV(video=False)
+
+        #TODO set duration in controls
+        @self.mpv.property_observer('duration')
+        def duration_observer(_name, value):
+            if value != None:
+                print('Media duration is {:.2f}s'.format(value))
+
+        #TODO set current position in controls
+        @self.mpv.property_observer('time-pos')
+        def time_observer(_name, value):
+            if value != None:
+                print('Now playing at {:.2f}s'.format(value))
+
+    def play(self, media):
+        self.mpv.play(media)
+
+    def stop(self):
+        self.mpv.stop()
+
+def get_process_address(_, name):
+    address = GLX.glXGetProcAddress(name.decode("utf-8"))
+    return ctypes.cast(address, ctypes.c_void_p).value
 
 app = LinMoTube()
 app.connect("destroy", Gtk.main_quit)
