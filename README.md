@@ -34,8 +34,6 @@ Video List | Playback | Music List
 
 Add support for filters
 
-Additional controls for playback
-
 ### Donations Appreciated!
 
 PayPal: https://www.paypal.me/jakeday42
