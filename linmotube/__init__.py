@@ -360,7 +360,7 @@ class LinMoTube(Gtk.Window):
         titlelabel = Gtk.Label()
         titlelabel.set_markup("<a href=''><big><b>" + title.replace("&", "&amp;") + "</b></big></a>")
         titlelabel.connect("activate-link", self.OnPlayVideo, id, title, self.mode)
-        titlelabel.set_justify(Gtk.Justification.FILL)
+        titlelabel.set_justify(Gtk.Justification.LEFT)
         titlelabel.set_line_wrap(True)
         titlelabel.set_max_width_chars(68)
         titlelabel.get_style_context().add_class('app-theme')
@@ -434,7 +434,7 @@ class LinMoTube(Gtk.Window):
             titlelabel = Gtk.Label()
             titlelabel.set_markup("<a href=''><big><b>" + vid['title'].replace("&", "&amp;") + "</b></big></a>")
             titlelabel.connect("activate-link", self.OnPlayVideo, vid['id'], vid['title'], vid['type'])
-            titlelabel.set_justify(Gtk.Justification.FILL)
+            titlelabel.set_justify(Gtk.Justification.LEFT)
             titlelabel.set_line_wrap(True)
             titlelabel.set_max_width_chars(68)
             titlelabel.get_style_context().add_class('app-theme')
@@ -623,7 +623,7 @@ class MediaPlayer(Gtk.GLArea):
     def mode(self, mode):
         if mode == "V":
             self.mpv = MPV(input_default_bindings=True, input_vo_keyboard=True, osc=True)
-            self.mpv.fullscreen = True
+            #self.mpv.fullscreen = True
         else:
             self.mpv = MPV(video=False)
 
