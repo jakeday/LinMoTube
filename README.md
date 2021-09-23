@@ -7,6 +7,14 @@ Browse and play media from YouTube without the need to sign-in. With the recent 
 
 Supports both YouTube Video mode and YouTube Music mode with a convenient toggle switch!
 
+### Features
+
+Search for Videos and Music
+Auto pagination to keep scrolling to load more results
+Toggle between Video and Music mode
+Download songs and videos to your offline library
+Playback control for media
+
 Video List | Playback | Music List
 :-------------------------:|:-------------------------:|:-------------------------:
 ![Video List](https://github.com/jakeday/LinMoTube/blob/master/docs/LinMoTube-VideosPage.png?raw=true) | ![Playback](https://github.com/jakeday/LinMoTube/blob/master/docs/LinMoTube-VideoPlayback.png?raw=true) | ![Music List](https://github.com/jakeday/LinMoTube/blob/master/docs/LinMoTube-MusicPage.png?raw=true)
