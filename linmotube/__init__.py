@@ -53,6 +53,7 @@ class LinMoTube(Gtk.Window):
 
         self.mode = "V"
         self.playing = False
+        self.duration = "00:00"
         self.criteria = None
         self.library = False
 
@@ -134,8 +135,34 @@ class LinMoTube(Gtk.Window):
         nowplayinglabel.set_justify(Gtk.Justification.LEFT)
         self.controls.pack_start(nowplayinglabel, False, False, 0)
 
-        playback = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        playback = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         self.controls.pack_start(playback, False, False, 0)
+
+        self.currentlabel = Gtk.Label(label="no media selected")
+        self.currentlabel.set_justify(Gtk.Justification.CENTER)
+        self.currentlabel.set_line_wrap(True)
+        self.currentlabel.set_max_width_chars(68)
+        self.currentlabel.get_style_context().add_class('bold')
+        playback.pack_start(self.currentlabel, True, True, 0)
+
+        self.positionlabel = Gtk.Label()
+        self.positionlabel.set_justify(Gtk.Justification.CENTER)
+        playback.pack_start(self.positionlabel, True, True, 0)
+
+        mediabtns = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        playback.pack_start(mediabtns, True, True, 0)
+
+        pausepb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+            filename=os.path.join(self.my_path, 'assets/pause.png'),
+            width=24, 
+            height=24, 
+            preserve_aspect_ratio=True)
+        pauseimg = Gtk.Image.new_from_pixbuf(pausepb)
+        pausebtn = Gtk.Button()
+        pausebtn.add(pauseimg)
+        pausebtn.connect("clicked", self.OnPauseVideo)
+        pausebtn.get_style_context().add_class('app-theme')
+        mediabtns.pack_start(pausebtn, True, True, 0)
 
         stoppb = GdkPixbuf.Pixbuf.new_from_file_at_scale(
             filename=os.path.join(self.my_path, 'assets/stop.png'),
@@ -143,17 +170,11 @@ class LinMoTube(Gtk.Window):
             height=24, 
             preserve_aspect_ratio=True)
         stopimg = Gtk.Image.new_from_pixbuf(stoppb)
-        self.stopbtn = Gtk.Button()
-        self.stopbtn.add(stopimg)
-        self.stopbtn.connect("clicked", self.OnStopVideo)
-        self.stopbtn.get_style_context().add_class('app-theme')
-        playback.pack_start(self.stopbtn, False, False, 0)
-
-        self.currentlabel = Gtk.Label(label="no media selected")
-        self.currentlabel.set_justify(Gtk.Justification.CENTER)
-        self.currentlabel.set_line_wrap(True)
-        self.currentlabel.set_max_width_chars(68)
-        playback.pack_start(self.currentlabel, True, True, 0)
+        stopbtn = Gtk.Button()
+        stopbtn.add(stopimg)
+        stopbtn.connect("clicked", self.OnStopVideo)
+        stopbtn.get_style_context().add_class('app-theme')
+        mediabtns.pack_start(stopbtn, True, True, 0)
 
         self.loadinglabel = Gtk.Label()
         self.loadinglabel.set_markup("<big><b>loading media...</b></big>");
@@ -438,19 +459,13 @@ class LinMoTube(Gtk.Window):
 
     def OnPlayVideo(self, button, uri, id, title, type):
         self.currentlabel.set_text(title)
+        self.positionlabel.set_text("loading...")
         self.controls.show()
         
-        self.swidth = self.get_size().width
-        self.sheight = self.get_size().height
-
-        lpmode = "portrait"
-        if self.swidth >= self.sheight:
-            lpmode = "landscape"
-        
-        x = threading.Thread(target=self.DoPlayVideo, args=(button, uri, id, type, lpmode))
+        x = threading.Thread(target=self.DoPlayVideo, args=(button, uri, id, type))
         x.start()
 
-    def DoPlayVideo(self, button, uri, id, type, lpmode):
+    def DoPlayVideo(self, button, uri, id, type):
         vidurl = 'https://www.youtube.com/watch?v=' + id
 
         self.player.mode(type)
@@ -477,11 +492,20 @@ class LinMoTube(Gtk.Window):
         self.player.stop()
         self.playing = False
 
-        self.currentlabel.set_text("no media selected")
         self.controls.hide()
+        self.currentlabel.set_text("no media selected")
+        self.positionlabel.set_text("")
 
         sbparams = ['gsettings', 'set', 'org.gnome.desktop.session', 'idle-delay', self.idleTime]
         sbproc = subprocess.Popen(sbparams, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
+
+    def OnPauseVideo(self, evt):
+        if self.playing:
+            self.player.pause()
+            self.playing = False
+        else:
+            self.player.resume()
+            self.playing = True
 
     def OnDownloadVideo(self, button, id, title, thumb):
         button.get_child().set_from_pixbuf(self.savedpb)
@@ -540,6 +564,18 @@ class LinMoTube(Gtk.Window):
             jsonfile.close()
 
         self.OnLoadLibrary(button)
+
+    def OnUpdateDuration(self, s):
+        value = "%02d:%02d" % divmod(s, 60)
+        self.duration = str(value)
+
+    def DoUpdatePosition(self, s):
+        value = "%02d:%02d" % divmod(s, 60)
+        self.positionlabel.set_text(str(value) + "/" + self.duration)
+
+    def OnUpdatePosition(self, s):
+        GLib.idle_add(self.DoUpdatePosition, s)
+        
         
 class MediaPlayer(Gtk.GLArea):
     def __init__(self, **properties):
@@ -591,23 +627,27 @@ class MediaPlayer(Gtk.GLArea):
         else:
             self.mpv = MPV(video=False)
 
-        #TODO set duration in controls
         @self.mpv.property_observer('duration')
         def duration_observer(_name, value):
             if value != None:
-                print('Media duration is {:.2f}s'.format(value))
+                app.OnUpdateDuration(value)
 
-        #TODO set current position in controls
         @self.mpv.property_observer('time-pos')
         def time_observer(_name, value):
             if value != None:
-                print('Now playing at {:.2f}s'.format(value))
+                app.OnUpdatePosition(value)
 
     def play(self, media):
         self.mpv.play(media)
 
     def stop(self):
         self.mpv.stop()
+
+    def pause(self):
+        self.mpv._set_property('pause', True)
+
+    def resume(self):
+        self.mpv._set_property('pause', False)
 
 def get_process_address(_, name):
     address = GLX.glXGetProcAddress(name.decode("utf-8"))
