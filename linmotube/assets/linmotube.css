@@ -12,3 +12,6 @@
 .border-top {
   border-top: solid 1px rgb(0, 0, 0)
 }
+.bold {
+  font-weight: bold;
+}
