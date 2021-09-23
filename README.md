@@ -9,11 +9,11 @@ Supports both YouTube Video mode and YouTube Music mode with a convenient toggle
 
 ### Features
 
-Search for Videos and Music
-Auto pagination to keep scrolling to load more results
-Toggle between Video and Music mode
-Download songs and videos to your offline library
-Playback control for media
+- Search for Videos and Music
+- Auto pagination to keep scrolling to load more results
+- Toggle between Video and Music mode
+- Download songs and videos to your offline library
+- Playback control for media
 
 Video List | Playback | Music List
 :-------------------------:|:-------------------------:|:-------------------------:
@@ -40,7 +40,7 @@ Video List | Playback | Music List
 
 ### TODO
 
-Add support for filters
+- Add support for filters
 
 ### Donations Appreciated!
 
