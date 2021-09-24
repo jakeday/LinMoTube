@@ -474,17 +474,19 @@ class LinMoTube(Gtk.Window):
     def DoPlayVideo(self, button, uri, id, type):
         vidurl = 'https://www.youtube.com/watch?v=' + id
 
-        self.player.mode(type)
-
         if type == "V":
             if os.path.exists(os.path.join(self.cache_path, id + ".mp4")):
+                self.player.mode(type, False)
                 self.player.play(os.path.join(self.cache_path, id + ".mp4"))
             else:
+                self.player.mode(type, True)
                 self.player.play(vidurl)
         else:
             if os.path.exists(os.path.join(self.cache_path, id + ".mp3")):
+                self.player.mode(type, False)
                 self.player.play(os.path.join(self.cache_path, id + ".mp3"))
             else:
+                self.player.mode(type, True)
                 self.player.play(vidurl)
 
         self.playing = True
@@ -607,7 +609,7 @@ class MediaPlayer(Gtk.GLArea):
         self._proc_addr_wrapper = OpenGlCbGetProcAddrFn(get_process_address)
 
         self.ctx = None
-        self.mode("V")
+        self.mode("V", True)
 
         self.connect("realize", self.DoRealize)
         self.connect("render", self.DoRender)
@@ -642,12 +644,30 @@ class MediaPlayer(Gtk.GLArea):
             return True
         return False
 
-    def mode(self, mode):
+    def mode(self, mode, stream):
         if mode == "V":
-            self.mpv = MPV(input_default_bindings=True, input_vo_keyboard=True, osc=True)
+            if stream == True:
+                self.mpv = MPV(
+                    input_default_bindings=True,
+                    input_vo_keyboard=True,
+                    osc=True,
+                    stream_buffer_size='5MiB',
+                    demuxer_max_bytes='1024KiB',
+                    ytdl=True,
+                    ytdl_format='(bestvideo[height<=720]+bestaudio)'
+                )
+            else:
+                self.mpv = MPV(
+                    input_default_bindings=True,
+                    input_vo_keyboard=True,
+                    osc=True
+                )
             #self.mpv.fullscreen = True
         else:
-            self.mpv = MPV(video=False)
+            if stream == True:
+                self.mpv = MPV(video=False, stream_buffer_size='5MiB', demuxer_max_bytes='1024KiB')
+            else:
+                self.mpv = MPV(video=False)
 
         @self.mpv.property_observer('duration')
         def duration_observer(_name, value):
