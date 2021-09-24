@@ -620,8 +620,7 @@ class MediaPlayer(Gtk.GLArea):
 
     def DoUnrealize(self, arg):
         self.ctx.free()
-        self.vidmpv.terminate()
-        self.audmpv.terminate()
+        self.mpv.terminate()
 
     def wrapped_c_render_func(self):
         GLib.idle_add(self.call_frame_ready, None, GLib.PRIORITY_HIGH)
