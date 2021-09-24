@@ -665,7 +665,7 @@ class MediaPlayer(Gtk.GLArea):
             #self.mpv.fullscreen = True
         else:
             if stream == True:
-                self.mpv = MPV(video=False, stream_buffer_size='5MiB', demuxer_max_bytes='1024KiB')
+                self.mpv = MPV(video=False, stream_buffer_size='5MiB', demuxer_max_bytes='1024KiB', ytdl=True)
             else:
                 self.mpv = MPV(video=False)
 
