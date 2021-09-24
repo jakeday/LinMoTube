@@ -53,6 +53,7 @@ class LinMoTube(Gtk.Window):
 
         self.mode = "V"
         self.playing = False
+        self.seeking = False
         self.duration = "00:00"
         self.criteria = None
         self.library = False
@@ -131,10 +132,6 @@ class LinMoTube(Gtk.Window):
         self.controls.get_style_context().add_class('border-top')
         container.pack_end(self.controls, False, False, 0)
 
-        nowplayinglabel = Gtk.Label(label="- Now Playing -")
-        nowplayinglabel.set_justify(Gtk.Justification.LEFT)
-        self.controls.pack_start(nowplayinglabel, False, False, 0)
-
         playback = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         self.controls.pack_start(playback, False, False, 0)
 
@@ -148,6 +145,12 @@ class LinMoTube(Gtk.Window):
         self.positionlabel = Gtk.Label()
         self.positionlabel.set_justify(Gtk.Justification.CENTER)
         playback.pack_start(self.positionlabel, True, True, 0)
+
+        self.playscale = Gtk.Scale().new(Gtk.Orientation.HORIZONTAL)
+        self.playscale.set_draw_value(False)
+        self.playscale.connect("button-press-event", self.OnPlayPositionSeek)
+        self.playscale.connect("button-release-event", self.OnPlayPositionChange)
+        playback.pack_start(self.playscale, True, True, 0)
 
         mediabtns = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         playback.pack_start(mediabtns, True, True, 0)
@@ -360,7 +363,7 @@ class LinMoTube(Gtk.Window):
         titlelabel = Gtk.Label()
         titlelabel.set_markup("<a href=''><big><b>" + title.replace("&", "&amp;") + "</b></big></a>")
         titlelabel.connect("activate-link", self.OnPlayVideo, id, title, self.mode)
-        titlelabel.set_justify(Gtk.Justification.LEFT)
+        titlelabel.set_justify(Gtk.Justification.FILL)
         titlelabel.set_line_wrap(True)
         titlelabel.set_max_width_chars(68)
         titlelabel.get_style_context().add_class('app-theme')
@@ -434,7 +437,7 @@ class LinMoTube(Gtk.Window):
             titlelabel = Gtk.Label()
             titlelabel.set_markup("<a href=''><big><b>" + vid['title'].replace("&", "&amp;") + "</b></big></a>")
             titlelabel.connect("activate-link", self.OnPlayVideo, vid['id'], vid['title'], vid['type'])
-            titlelabel.set_justify(Gtk.Justification.LEFT)
+            titlelabel.set_justify(Gtk.Justification.FILL)
             titlelabel.set_line_wrap(True)
             titlelabel.set_max_width_chars(68)
             titlelabel.get_style_context().add_class('app-theme')
@@ -460,6 +463,9 @@ class LinMoTube(Gtk.Window):
     def OnPlayVideo(self, button, uri, id, title, type):
         self.currentlabel.set_text(title)
         self.positionlabel.set_text("loading...")
+        self.playscale.set_range(0, 0)
+        self.playscale.set_value(0)
+        self.currentposition = 0
         self.controls.show()
         
         x = threading.Thread(target=self.DoPlayVideo, args=(button, uri, id, type))
@@ -495,6 +501,9 @@ class LinMoTube(Gtk.Window):
         self.controls.hide()
         self.currentlabel.set_text("no media selected")
         self.positionlabel.set_text("")
+        self.playscale.set_range(0, 0)
+        self.playscale.set_value(0)
+        self.currentposition = 0
 
         sbparams = ['gsettings', 'set', 'org.gnome.desktop.session', 'idle-delay', self.idleTime]
         sbproc = subprocess.Popen(sbparams, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
@@ -568,13 +577,27 @@ class LinMoTube(Gtk.Window):
     def OnUpdateDuration(self, s):
         value = "%02d:%02d" % divmod(s, 60)
         self.duration = str(value)
+        self.playscale.set_range(0, s)
 
     def DoUpdatePosition(self, s):
         value = "%02d:%02d" % divmod(s, 60)
-        self.positionlabel.set_text(str(value) + "/" + self.duration)
+        self.currentposition = s
+        if self.seeking == False:
+            self.positionlabel.set_text(str(value) + "/" + self.duration)
+            self.playscale.set_value(s)
 
     def OnUpdatePosition(self, s):
         GLib.idle_add(self.DoUpdatePosition, s)
+
+    def OnPlayPositionSeek(self, s, e):
+        self.seeking = True
+
+    def OnPlayPositionChange(self, s, e):
+        c = self.currentposition
+        n = s.get_value()
+        pos = n - c
+        self.player.seek(pos)
+        self.seeking = False
         
         
 class MediaPlayer(Gtk.GLArea):
@@ -648,6 +671,9 @@ class MediaPlayer(Gtk.GLArea):
 
     def resume(self):
         self.mpv._set_property('pause', False)
+
+    def seek(self, pos):
+        self.mpv.seek(pos)
 
 def get_process_address(_, name):
     address = GLX.glXGetProcAddress(name.decode("utf-8"))
